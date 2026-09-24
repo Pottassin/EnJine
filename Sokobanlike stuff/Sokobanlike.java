@@ -911,6 +911,16 @@ public class Sokobanlike extends Prog {
                     levelMenu.start();
                 else
                     levelMenu.destroy();
+                return;
+            }
+            if (isPaused || Level.activeLevel == LevelEditor.instance) return;
+            for (int x = 0; x < grid[0].length; x++) {
+                for (int y = 0; y < grid.length; y++) {
+                    if (grid[y][x] == null) break;
+                    for (TypeInst t : grid[y][x].types) {
+                        t.tt.playerInput.apply((new Context(null, null, null)).newInputContext(this, grid[y][x], t, Input.inputOf(e)));
+                    }
+                }
             }
             if (e == Input.debug.key) {
                 System.out.println("DEBUG---------------");
@@ -923,15 +933,6 @@ public class Sokobanlike extends Prog {
                 }
                 System.out.println("END DEBUG-----------");
                 return;
-            }
-            if (isPaused || Level.activeLevel == LevelEditor.instance) return;
-            for (int x = 0; x < grid[0].length; x++) {
-                for (int y = 0; y < grid.length; y++) {
-                    if (grid[y][x] == null) break;
-                    for (TypeInst t : grid[y][x].types) {
-                        t.tt.playerInput.apply((new Context(null, null, null)).newInputContext(this, grid[y][x], t, Input.inputOf(e)));
-                    }
-                }
             }
             System.out.println("First Check ______________/");
             resolveMoves();
