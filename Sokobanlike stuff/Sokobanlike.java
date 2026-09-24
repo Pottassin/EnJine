@@ -2,6 +2,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.awt.image.FilteredImageSource;
+import java.awt.image.RGBImageFilter;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -40,15 +42,49 @@ public class Sokobanlike extends Prog {
         beltLeft(retrieve("BeltLeft")),
         beltRight(retrieve("BeltRight")),
         beltUp(retrieve("BeltUp")),
-        beltDown(retrieve("BeltDown"));
-        BufferedImage i;
-        Sprites(BufferedImage image) { i = image; }
+        beltDown(retrieve("BeltDown")),
+        closedGate1(projectColor(retrieve("BlankClosedGate"), Color.red)),
+        closedGate2(projectColor(retrieve("BlankClosedGate"), Color.orange)),
+        closedGate3(projectColor(retrieve("BlankClosedGate"), Color.yellow)),
+        closedGate4(projectColor(retrieve("BlankClosedGate"), Color.green)),
+        closedGate5(projectColor(retrieve("BlankClosedGate"), Color.cyan)),
+        closedGate6(projectColor(retrieve("BlankClosedGate"), new Color(144, 0, 255))),
+        openGate1(projectColor(retrieve("BlankOpenGate"), Color.red)),
+        openGate2(projectColor(retrieve("BlankOpenGate"), Color.orange)),
+        openGate3(projectColor(retrieve("BlankOpenGate"), Color.yellow)),
+        openGate4(projectColor(retrieve("BlankOpenGate"), Color.green)),
+        openGate5(projectColor(retrieve("BlankOpenGate"), Color.cyan)),
+        openGate6(projectColor(retrieve("BlankOpenGate"), new Color(144, 0, 255))),
+        button1(projectColor(retrieve("BlankButton"), Color.red)),
+        button2(projectColor(retrieve("BlankButton"), Color.orange)),
+        button3(projectColor(retrieve("BlankButton"), Color.yellow)),
+        button4(projectColor(retrieve("BlankButton"), Color.green)),
+        button5(projectColor(retrieve("BlankButton"), Color.cyan)),
+        button6(projectColor(retrieve("BlankButton"), new Color(144, 0, 255))),
+        spikes(retrieve("Spikes"));
+        Image i;
+        Sprites(Image image) { i = image; }
 
         static BufferedImage retrieve(String name) {
             try {
                 return ImageIO.read(new File(spriteDirectory + name+".png"));
             }
             catch (IOException e) { throw new RuntimeException(e); }
+        }
+
+        static Image projectColor(BufferedImage i, Color c) {
+            FilteredImageSource fis = new FilteredImageSource(i.getSource(), new ProjectFilter(c));
+            return Toolkit.getDefaultToolkit().createImage(fis);
+        }
+
+        public static class ProjectFilter extends RGBImageFilter {
+            public Color dye;
+            public ProjectFilter(Color d) { dye = d; }
+            @Override
+            public int filterRGB(int x, int y, int rgb) {
+                int grey = (((rgb >> 16) & 0xff) + ((rgb >> 8) & 0xff) + (rgb & 0xff) ) / 3;
+                return (rgb & 0xff000000) | ((int)(grey/255.*dye.getRed()) << 16) | ((int)(grey/255.*dye.getGreen()) << 8) | (int)(grey/255.*dye.getBlue());
+            }
         }
     }
 
@@ -843,6 +879,7 @@ public class Sokobanlike extends Prog {
         public File file;
         public Tile[][] grid;
         public ArrayList<GridModRequest> moveQueue = new ArrayList<GridModRequest>();
+        public boolean gameOver = false;
 
         /*
 
@@ -856,8 +893,9 @@ public class Sokobanlike extends Prog {
             activeLevel = this;
             CameraManager.addToDraw(this, 1);
             KeyDetect.instance.addP(this);
-            //if (activeLevel != LevelEditor.instance)
-                //reload();
+            TypeInfo.PlayerInfo.awake = 0;
+            if (activeLevel != LevelEditor.instance)
+                reload();
         }
 
         public void destroy() {
@@ -873,6 +911,18 @@ public class Sokobanlike extends Prog {
                     levelMenu.start();
                 else
                     levelMenu.destroy();
+            }
+            if (e == Input.debug.key) {
+                System.out.println("DEBUG---------------");
+                for (Integer i : TypeInfo.GateInfo.states.keySet()) {
+                    System.out.println("Key: " + i + ", Open?: " + TypeInfo.GateInfo.states.get(i));
+                }
+                System.out.println("");
+                for (Integer i : TypeInfo.ToggleInfo.helds.keySet()) {
+                    System.out.println("Key: " + i + ", Held: " + TypeInfo.ToggleInfo.helds.get(i));
+                }
+                System.out.println("END DEBUG-----------");
+                return;
             }
             if (isPaused || Level.activeLevel == LevelEditor.instance) return;
             for (int x = 0; x < grid[0].length; x++) {
@@ -955,8 +1005,8 @@ public class Sokobanlike extends Prog {
                                 if (grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].types.contains(r.move.srcType)) {
                                     grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].types.remove(r.move.srcType);
                                     grid[r.move.tile.pos.y()][r.move.tile.pos.x()].types.add(r.move.srcType);
-                                    
-                                    grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].exit(r.move);
+                                    MoveContext pushC = new MoveContext(r.move.curLevel, r.move.tile, r.move.type, null, null, r.move.dir, r.move.max, r.move.depth);
+                                    grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].exit(pushC);
                                     grid[r.move.tile.pos.y()][r.move.tile.pos.x()].push(r.move);
                                 } else {
                                     /*System.out.println("expected " + r.move.type.tt + " at " + r.move.srcTile.pos + ", found: ");
@@ -1001,8 +1051,8 @@ public class Sokobanlike extends Prog {
                     rc = new RenderContext(this, grid[y][x], null, null, null);
                     if (grid[y][x] != null)
                         if (grid[y][x].types.size() > 0) {
-                            if (grid[y][x].types.get(0) == null) break;
                             for (TypeInst ti : grid[y][x].types) {
+                                if (ti.tt == null) break;
                                 rc.srcType = ti;
                                 ti.tt.render.accept(g, rc);
                             }
@@ -1247,7 +1297,10 @@ public class Sokobanlike extends Prog {
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     if (typePane.isColliding(new PointCollider(MouseDetect.instance.mousePos()))) {
                         int i = (int) ((MouseDetect.instance.mousePos().x - typePane.og.x) / 22);
-                        t.types.get(i).ti.nudge(0, 1);
+                        if (t.types.get(i).tt == TileType.player || t.types.get(i).tt == TileType.belt)
+                            t.types.get(i).ti.nudge(0, 1);
+                        else
+                            t.types.get(i).ti.nudge();
                     }
                 }
             }
@@ -2061,7 +2114,9 @@ public class Sokobanlike extends Prog {
         }
         public Boolean push(MoveContext c) {
             c.tile = this;
+            //System.out.println("Pushing: ");
             for (TypeInst t : types) {
+                //System.out.println(t.tt);
                 c.type = t;
                 if (!t.tt.push.apply(c)) return false;
             }
@@ -2076,9 +2131,11 @@ public class Sokobanlike extends Prog {
             return true;
         }
         public Boolean exit(MoveContext c) {
-            //c.tile = this;
+            c.tile = this;
+            //System.out.println("Exiting: ");
             for (TypeInst t : types) {
-                //c.type = t;
+                //System.out.println(t.tt);
+                c.type = t;
                 if (!t.tt.exit.apply(c)) return false;
             }
             return true;
@@ -2106,7 +2163,7 @@ public class Sokobanlike extends Prog {
     public enum TileType {
         empty(0,
                 GenericInput.ignore.func, GenericInput.ignore.func,
-                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
@@ -2118,7 +2175,7 @@ public class Sokobanlike extends Prog {
         }),
         wall(1,
                 GenericInput.ignore.func, GenericInput.ignore.func,
-                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.block.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null) {
@@ -2160,7 +2217,7 @@ public class Sokobanlike extends Prog {
         }),
         box(2,
                 GenericInput.ignore.func, GenericInput.ignore.func,
-                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.line.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
@@ -2170,11 +2227,15 @@ public class Sokobanlike extends Prog {
         }),
         player(3,
                GenericInput.follow.func, GenericInput.ignore.func,
-               GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func,
+               GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                GenericMove.ignore.func, GenericMove.line.func, GenericMove.ignore.func,
                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null) {
                 if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
+                    if (pi.sleepy) {
+                        g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20 + 20, 20, -20, null);
+                        return;
+                    }
                     if (pi.dir.y == -1)
                         g.drawImage(Sprites.chudUp.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
                     else if (pi.dir.y == 1)
@@ -2188,12 +2249,13 @@ public class Sokobanlike extends Prog {
                     g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
                 }
             }
-            else
+            else {
                 g.drawImage(Sprites.chudRight.i, c.c.x(), c.c.y(), 20, 20, null);
+            }
         }),
         belt(4,
                 GenericInput.ignore.func, GenericInput.push.func,
-                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null) {
@@ -2216,7 +2278,7 @@ public class Sokobanlike extends Prog {
         }),
         ice(5,
                 GenericInput.ignore.func, GenericInput.ignore.func,
-                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.slide.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             g.setColor(new Color(130,190,255));
@@ -2227,25 +2289,91 @@ public class Sokobanlike extends Prog {
         }),
         gate(6,
                 GenericInput.ignore.func, GenericInput.ignore.func,
-                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.check.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
-            g.setColor(Color.orange);
-            if (c.c == null)
-                g.fillRect(c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20);
-            else
-                g.fillRect(c.c.x(), c.c.y(), 20, 20);
+            TypeInfo.GateInfo gi = (TypeInfo.GateInfo)c.srcType.ti;
+            if (c.c == null) {
+                if (TypeInfo.GateInfo.states.get(gi.id)==gi.not) {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.closedGate1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.closedGate2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.closedGate3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.closedGate4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.closedGate5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.closedGate6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+                else {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.openGate1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.openGate2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.openGate3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.openGate4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.openGate5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.openGate6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+            }
+            else {
+                if (TypeInfo.GateInfo.states.get(gi.id)==gi.not) {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.closedGate1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.closedGate2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.closedGate3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.closedGate4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.closedGate5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.closedGate6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+                else {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.openGate1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.openGate2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.openGate3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.openGate4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.openGate5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.openGate6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+            }
         }),
         button(7,
                 GenericInput.ignore.func, GenericInput.ignore.func,
-                GenericMove.ignore.func, GenericMove.hold.func, GenericMove.ignore.func, GenericMove.unhold.func,
+                GenericMove.allow.func, GenericMove.hold.func, GenericMove.allow.func, GenericMove.unhold.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
-            g.setColor(Color.orange);
+            TypeInfo.ToggleInfo bi = (TypeInfo.ToggleInfo)c.srcType.ti;
+            if (c.c == null) {
+                switch (bi.id) {
+                    case 0: g.drawImage(Sprites.button1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    case 1: g.drawImage(Sprites.button2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    case 2: g.drawImage(Sprites.button3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    case 3: g.drawImage(Sprites.button4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    case 4: g.drawImage(Sprites.button5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    case 5: g.drawImage(Sprites.button6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                }
+            }
+            else {
+                switch (bi.id) {
+                    case 0: g.drawImage(Sprites.button1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    case 1: g.drawImage(Sprites.button2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    case 2: g.drawImage(Sprites.button3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    case 3: g.drawImage(Sprites.button4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    case 4: g.drawImage(Sprites.button5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    case 5: g.drawImage(Sprites.button6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                }
+            }
+        }),
+        spikes(8,
+                GenericInput.ignore.func, GenericInput.ignore.func,
+                GenericMove.allow.func, GenericMove.stab.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
-                g.fillRect(c.srcTile.pos.x()*20+3, c.srcTile.pos.y()*20+3, 14, 14);
+                g.drawImage(Sprites.spikes.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
             else
-                g.fillRect(c.c.x(), c.c.y(), 20, 20);
+                g.drawImage(Sprites.spikes.i, c.c.x(), c.c.y(), 20, 20, null);
         });
         public Function<InputContext, Boolean> playerInput;
         public Function<InputContext, Boolean> playerInputEnd;
@@ -2281,10 +2409,13 @@ public class Sokobanlike extends Prog {
             return null;
         }
         public static TileType[] tileTypes() {
-            return new TileType[]{empty, wall, box, player, belt, ice, gate, button};
+            return new TileType[]{empty, wall, box, player, belt, ice, gate, button, spikes};
         }
         public static enum GenericInput {
             follow((InputContext c) -> {
+                if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
+                    if (pi.sleepy) return false;
+                }
                 Coord moveDir = null;
                 if (c.input == Input.up) {
                     moveDir = new Coord(0,-1);
@@ -2389,12 +2520,20 @@ public class Sokobanlike extends Prog {
                 System.out.println("Check Unhold\n");
                 if (c.type.ti instanceof TypeInfo.ToggleInfo ti) {
                     System.out.println("Off Button\n");
-                    if (TypeInfo.ToggleInfo.helds.get(ti.id) >= 1) {
+                    if (TypeInfo.ToggleInfo.helds.get(ti.id) <= 1) {
                         TypeInfo.GateInfo.states.put(ti.id, false);
                     }
                     TypeInfo.ToggleInfo.helds.put(ti.id, TypeInfo.ToggleInfo.helds.get(ti.id)-1);
                 }
-                return false;});
+                return false;}),
+            stab((MoveContext c) -> {
+                if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
+                    c.curLevel.gameOver = true;
+                    pi.sleepy = true;
+                    TypeInfo.PlayerInfo.awake--;
+                }
+                return true;
+            });
             public Function<MoveContext, Boolean> func;
             GenericMove(Function<MoveContext, Boolean> f) { func = f; }
         }
@@ -2416,7 +2555,8 @@ public class Sokobanlike extends Prog {
         left(KeyEvent.VK_A),
         right(KeyEvent.VK_D),
         wait(KeyEvent.VK_SPACE),
-        esc(KeyEvent.VK_ESCAPE);
+        esc(KeyEvent.VK_ESCAPE),
+        debug(KeyEvent.VK_SHIFT);
         public int key;
         Input(int k) {
             key = k;
@@ -2490,12 +2630,16 @@ public class Sokobanlike extends Prog {
 
         public static class PlayerInfo extends TypeInfo {
             public Coord dir;
+            public boolean sleepy = false;
+            public static int awake = 0;
 
             public PlayerInfo() {
+                awake++;
                 dir = new Coord(1, 0);
             }
 
             public PlayerInfo(Coord d) {
+                awake++;
                 dir = d;
             }
 
@@ -2557,6 +2701,7 @@ public class Sokobanlike extends Prog {
             public void nudge() {
                 id++;
                 id %= 6;
+                if (id==0) not=!not;
                 states.put(id, false);
             }
         }
@@ -2567,11 +2712,13 @@ public class Sokobanlike extends Prog {
             public ToggleInfo() {
                 id = 0;
                 GateInfo.states.put(id, false);
+                helds.put(id, 0);
             }
 
             public ToggleInfo(int n) {
                 id = n;
                 GateInfo.states.put(id, false);
+                helds.put(id, 0);
             }
 
             @Override
@@ -2579,6 +2726,7 @@ public class Sokobanlike extends Prog {
                 id++;
                 id %= 6;
                 GateInfo.states.put(id, false);
+                helds.put(id, 0);
             }
         }
 
