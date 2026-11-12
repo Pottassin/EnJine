@@ -14,6 +14,7 @@ public class MultiConsumer {
     public boolean isValid(Object[] obs) {
         if (types.length != obs.length) { System.out.println("differing lengths"); return false; }
         for (int x = 0; x < types.length; x++) {
+            // change to consider inheritance
             if (obs[x].getClass() != types[x]) {
                 System.out.println("incompatible type " + obs[x].getClass() + " (" + obs[x] + "), expected " + types[x]);
                 return false;

@@ -10,15 +10,17 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import enjine.GeoMath.*;
+import enjine.geoMath.*;
 import enjine.Prog;
 
 import javax.imageio.ImageIO;
 
 @SuppressWarnings("WrongPackageStatement")
 public class Sokobanlike extends Prog {
-    public static String directory = "Sokobanlike stuff/";
-    public static String spriteDirectory = directory+"Sprites/";
+    public static String directory = "sokobanlike stuff/";
+    public static String spriteDirectory = directory+"sprites/";
+    public static String levelDirectory = directory+"levels/";
+    public static String savesDirectory = directory+"saved levels/";
     public static File levelReg = new File(directory+"LevelRegistry");
     public static TreeMap<Integer, Level> levels = new TreeMap<Integer, Level>();
 
@@ -28,6 +30,17 @@ public class Sokobanlike extends Prog {
     public static LevelMenu levelMenu;
 
     public enum Sprites {
+        zero(retrieve("0")),
+        one(retrieve("1")),
+        two(retrieve("2")),
+        three(retrieve("3")),
+        four(retrieve("4")),
+        five(retrieve("5")),
+        six(retrieve("6")),
+        seven(retrieve("7")),
+        eight(retrieve("8")),
+        nine(retrieve("9")),
+        negative(retrieve("Negative")),
         grass(retrieve("Grass")),
         wallLeft(retrieve("WallLeft")),
         wallRight(retrieve("WallRight")),
@@ -61,7 +74,62 @@ public class Sokobanlike extends Prog {
         button4(projectColor(retrieve("BlankButton"), Color.green)),
         button5(projectColor(retrieve("BlankButton"), Color.cyan)),
         button6(projectColor(retrieve("BlankButton"), new Color(144, 0, 255))),
-        spikes(retrieve("Spikes"));
+        buttonDown1(projectColor(retrieve("BlankButtonDown"), Color.red)),
+        buttonDown2(projectColor(retrieve("BlankButtonDown"), Color.orange)),
+        buttonDown3(projectColor(retrieve("BlankButtonDown"), Color.yellow)),
+        buttonDown4(projectColor(retrieve("BlankButtonDown"), Color.green)),
+        buttonDown5(projectColor(retrieve("BlankButtonDown"), Color.cyan)),
+        buttonDown6(projectColor(retrieve("BlankButtonDown"), new Color(144, 0, 255))),
+        spikes(retrieve("Spikes")),
+        spikesUp1(projectColor(retrieve("BlankSpikesUp"), Color.red)),
+        spikesUp2(projectColor(retrieve("BlankSpikesUp"), Color.orange)),
+        spikesUp3(projectColor(retrieve("BlankSpikesUp"), Color.yellow)),
+        spikesUp4(projectColor(retrieve("BlankSpikesUp"), Color.green)),
+        spikesUp5(projectColor(retrieve("BlankSpikesUp"), Color.cyan)),
+        spikesUp6(projectColor(retrieve("BlankSpikesUp"), new Color(144, 0, 255))),
+        spikesDown1(projectColor(retrieve("BlankSpikesDown"), Color.red)),
+        spikesDown2(projectColor(retrieve("BlankSpikesDown"), Color.orange)),
+        spikesDown3(projectColor(retrieve("BlankSpikesDown"), Color.yellow)),
+        spikesDown4(projectColor(retrieve("BlankSpikesDown"), Color.green)),
+        spikesDown5(projectColor(retrieve("BlankSpikesDown"), Color.cyan)),
+        spikesDown6(projectColor(retrieve("BlankSpikesDown"), new Color(144, 0, 255))),
+        bomb(retrieve("Bomb")),
+        bombLit(retrieve("BombLit")),
+        fire(retrieve("Fire")),
+        eternalFire(retrieve("EternalFire")),
+        flagDown(retrieve("FlagDown")),
+        flag(retrieve("Flag")),
+        pasterRight(retrieve("PasterRight")),
+        watcher1(projectColor(retrieve("Watcher"), Color.red)),
+        watcher2(projectColor(retrieve("Watcher"), Color.orange)),
+        watcher3(projectColor(retrieve("Watcher"), Color.yellow)),
+        watcher4(projectColor(retrieve("Watcher"), Color.green)),
+        watcher5(projectColor(retrieve("Watcher"), Color.cyan)),
+        watcher6(projectColor(retrieve("Watcher"), new Color(144, 0, 255))),
+        watcherUp1(projectColor(retrieve("WatcherUp"), Color.red)),
+        watcherUp2(projectColor(retrieve("WatcherUp"), Color.orange)),
+        watcherUp3(projectColor(retrieve("WatcherUp"), Color.yellow)),
+        watcherUp4(projectColor(retrieve("WatcherUp"), Color.green)),
+        watcherUp5(projectColor(retrieve("WatcherUp"), Color.cyan)),
+        watcherUp6(projectColor(retrieve("WatcherUp"), new Color(144, 0, 255))),
+        watcherDown1(projectColor(retrieve("WatcherDown"), Color.red)),
+        watcherDown2(projectColor(retrieve("WatcherDown"), Color.orange)),
+        watcherDown3(projectColor(retrieve("WatcherDown"), Color.yellow)),
+        watcherDown4(projectColor(retrieve("WatcherDown"), Color.green)),
+        watcherDown5(projectColor(retrieve("WatcherDown"), Color.cyan)),
+        watcherDown6(projectColor(retrieve("WatcherDown"), new Color(144, 0, 255))),
+        watcherLeft1(projectColor(retrieve("WatcherLeft"), Color.red)),
+        watcherLeft2(projectColor(retrieve("WatcherLeft"), Color.orange)),
+        watcherLeft3(projectColor(retrieve("WatcherLeft"), Color.yellow)),
+        watcherLeft4(projectColor(retrieve("WatcherLeft"), Color.green)),
+        watcherLeft5(projectColor(retrieve("WatcherLeft"), Color.cyan)),
+        watcherLeft6(projectColor(retrieve("WatcherLeft"), new Color(144, 0, 255))),
+        watcherRight1(projectColor(retrieve("WatcherRight"), Color.red)),
+        watcherRight2(projectColor(retrieve("WatcherRight"), Color.orange)),
+        watcherRight3(projectColor(retrieve("WatcherRight"), Color.yellow)),
+        watcherRight4(projectColor(retrieve("WatcherRight"), Color.green)),
+        watcherRight5(projectColor(retrieve("WatcherRight"), Color.cyan)),
+        watcherRight6(projectColor(retrieve("WatcherRight"), new Color(144, 0, 255)));
         Image i;
         Sprites(Image image) { i = image; }
 
@@ -102,7 +170,6 @@ public class Sokobanlike extends Prog {
     }
 
     public void loadLevels() {
-        //levels.clear();
         try {
             Scanner regReader = new Scanner(levelReg);
             String line;
@@ -130,7 +197,6 @@ public class Sokobanlike extends Prog {
         builder.file = new File(directory + name);
         Scanner levelReader = new Scanner(builder.file);
         String lrl = levelReader.next();
-        String readT;
         Coord pos;
         TileType tt;
         try {
@@ -140,9 +206,48 @@ public class Sokobanlike extends Prog {
                 pos = new Coord();
                 pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
                 pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
-                //System.out.print(pos + " : ");
                 lrl = levelReader.next()+",";
-                //System.out.println(lrl);
+                builder.grid[pos.y()][pos.x()] = new Tile(pos);
+                if (lrl.length() == 1) break;
+                while (lrl.indexOf(',') != -1) {
+                    if (lrl.contains("|") && lrl.indexOf("|") < lrl.indexOf(",")) {
+                        tt = TileType.tileTypeOf(Integer.parseInt(lrl.substring(0, lrl.indexOf("|"))));
+                        builder.grid[pos.y()][pos.x()].types.add(new TypeInst(tt, TypeInfo.infoFromString(tt, lrl.substring(lrl.indexOf("|")+1, lrl.indexOf(",")))));
+                    } else {
+                        tt = TileType.tileTypeOf(Integer.parseInt(lrl.substring(0, lrl.indexOf(","))));
+                        builder.grid[pos.y()][pos.x()].types.add(new TypeInst(tt, TypeInfo.infoOfType(tt)));
+                    }
+                    lrl = lrl.substring(lrl.indexOf(',') + 1);
+
+                }
+            }
+        }
+        catch (Exception e) {
+            System.out.println(e.getMessage());
+            throw new LevelBuilderException();
+        }
+        return builder;
+    }
+    public Level buildLevel(String name, int dir) throws LevelBuilderException, FileNotFoundException {
+        Level builder = new Level();
+        if (dir == 2)
+            builder.file = new File(savesDirectory + name);
+        else if (dir == 1)
+            builder.file = new File(levelDirectory + name);
+        else
+            builder.file = new File(directory + name);
+        Scanner levelReader = new Scanner(builder.file);
+        String lrl = levelReader.next();
+        Coord pos;
+        TileType tt;
+        try {
+            builder.grid = new Tile[Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1))][Integer.parseInt(lrl.substring(0, lrl.indexOf(":")))];
+            while (levelReader.hasNext()) {
+                lrl = levelReader.next();
+                pos = new Coord();
+                pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
+                pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
+                lrl = levelReader.next()+",";
                 builder.grid[pos.y()][pos.x()] = new Tile(pos);
                 if (lrl.length() == 1) break;
                 while (lrl.indexOf(',') != -1) {
@@ -169,7 +274,7 @@ public class Sokobanlike extends Prog {
         builder.file = file;
         Scanner levelReader = new Scanner(file);
         String lrl = levelReader.next();
-        Coord pos = new Coord();
+        Coord pos;
         TileType tt;
         try {
             builder.grid = new Tile[Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1))][Integer.parseInt(lrl.substring(0, lrl.indexOf(":")))];
@@ -178,9 +283,7 @@ public class Sokobanlike extends Prog {
                 pos = new Coord();
                 pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
                 pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
-                //System.out.print(pos + " : ");
                 lrl = levelReader.next()+",";
-                //System.out.println(lrl);
                 builder.grid[pos.y()][pos.x()] = new Tile(pos);
                 if (lrl.length() == 1) break;
                 while (lrl.indexOf(',') != -1) {
@@ -208,21 +311,13 @@ public class Sokobanlike extends Prog {
             builder = new LevelEditor();
             LevelEditor.instance = builder;
             builder.file = new File(directory+"LevelEditor");
-            /*clearEditor();
-            for (int x = 0; x < 5; x++) {
-                for (int y = 0; y < 5; y++) {
-                    System.out.println(LevelEditor.instance.grid[y][x].types.get(0));
-                }
-            }
-            builder.start();
-            return;*/
         }
         else {
             builder = LevelEditor.instance;
         }
         Scanner levelReader = new Scanner(builder.file);
         String lrl = levelReader.next();
-        Coord pos = new Coord();
+        Coord pos;
         TileType tt;
         try {
             builder.grid = new Tile[Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1))][Integer.parseInt(lrl.substring(0, lrl.indexOf(":")))];
@@ -231,9 +326,7 @@ public class Sokobanlike extends Prog {
                 pos = new Coord();
                 pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
                 pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
-                //System.out.print(pos + " : ");
                 lrl = levelReader.next()+",";
-                //System.out.println(lrl);
                 builder.grid[pos.y()][pos.x()] = new Tile(pos);
                 if (lrl.length() == 1) break;
                 while (lrl.indexOf(',') != -1) {
@@ -272,21 +365,13 @@ public class Sokobanlike extends Prog {
             builder = new LevelEditor();
             LevelEditor.instance = builder;
             builder.file = new File(directory + "LevelEditor");
-            /*clearEditor();
-            for (int x = 0; x < 5; x++) {
-                for (int y = 0; y < 5; y++) {
-                    System.out.println(LevelEditor.instance.grid[y][x].types.get(0));
-                }
-            }
-            builder.start();
-            return;*/
         }
         else {
             builder = LevelEditor.instance;
         }
         Scanner levelReader = new Scanner(toLoad);
         String lrl = levelReader.next();
-        Coord pos = new Coord();
+        Coord pos;
         TileType tt;
         try {
             builder.grid = new Tile[Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1))][Integer.parseInt(lrl.substring(0, lrl.indexOf(":")))];
@@ -295,9 +380,71 @@ public class Sokobanlike extends Prog {
                 pos = new Coord();
                 pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
                 pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
-                //System.out.print(pos + " : ");
                 lrl = levelReader.next()+",";
-                //System.out.println(lrl);
+                builder.grid[pos.y()][pos.x()] = new Tile(pos);
+                if (lrl.length() == 1) break;
+                while (lrl.indexOf(',') != -1) {
+                    if (lrl.contains("|") && lrl.indexOf("|") < lrl.indexOf(",")) {
+                        tt = TileType.tileTypeOf(Integer.parseInt(lrl.substring(0, lrl.indexOf("|"))));
+                        builder.grid[pos.y()][pos.x()].types.add(new TypeInst(tt, TypeInfo.infoFromString(tt, lrl.substring(lrl.indexOf("|")+1, lrl.indexOf(",")))));
+                    } else {
+                        tt = TileType.tileTypeOf(Integer.parseInt(lrl.substring(0, lrl.indexOf(","))));
+                        builder.grid[pos.y()][pos.x()].types.add(new TypeInst(tt, TypeInfo.infoOfType(tt)));
+                    }
+                    lrl = lrl.substring(lrl.indexOf(',') + 1);
+
+                }
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Error Building Editor: "+e.getMessage()+", Attempting Default");
+            builder = new LevelEditor();
+            LevelEditor.instance = builder;
+            builder.file = new File(directory + "LevelEditor");
+            clearEditor();
+            for (int x = 0; x < 5; x++) {
+                for (int y = 0; y < 5; y++) {
+                    System.out.println(LevelEditor.instance.grid[y][x].types.get(0));
+                }
+            }
+            builder.start();
+            throw new LevelBuilderException();
+        }
+        builder.start();
+    }
+    public void buildEditor(String s, int dir) throws LevelBuilderException, FileNotFoundException {
+        LevelEditor builder;
+        File toLoad;
+        if (dir == 2) {
+            toLoad = new File(savesDirectory + s);
+        }
+        else if (dir == 1) {
+            System.out.println("->"+levelDirectory + s);
+            toLoad = new File(levelDirectory + s);
+        }
+        else {
+            toLoad = new File(directory + s);
+        }
+        if (LevelEditor.instance == null) {
+            builder = new LevelEditor();
+            LevelEditor.instance = builder;
+            builder.file = new File(savesDirectory + "LevelEditor");
+        }
+        else {
+            builder = LevelEditor.instance;
+        }
+        Scanner levelReader = new Scanner(toLoad);
+        String lrl = levelReader.next();
+        Coord pos;
+        TileType tt;
+        try {
+            builder.grid = new Tile[Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1))][Integer.parseInt(lrl.substring(0, lrl.indexOf(":")))];
+            while (levelReader.hasNext()) {
+                lrl = levelReader.next();
+                pos = new Coord();
+                pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
+                pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
+                lrl = levelReader.next()+",";
                 builder.grid[pos.y()][pos.x()] = new Tile(pos);
                 if (lrl.length() == 1) break;
                 while (lrl.indexOf(',') != -1) {
@@ -335,21 +482,13 @@ public class Sokobanlike extends Prog {
             builder = new LevelEditor();
             LevelEditor.instance = builder;
             builder.file = new File(directory + "LevelEditor");
-            /*clearEditor();
-            for (int x = 0; x < 5; x++) {
-                for (int y = 0; y < 5; y++) {
-                    System.out.println(LevelEditor.instance.grid[y][x].types.get(0));
-                }
-            }
-            builder.start();
-            return;*/
         }
         else {
             builder = LevelEditor.instance;
         }
         Scanner levelReader = new Scanner(f);
         String lrl = levelReader.next();
-        Coord pos = new Coord();
+        Coord pos;
         TileType tt;
         try {
             builder.grid = new Tile[Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1))][Integer.parseInt(lrl.substring(0, lrl.indexOf(":")))];
@@ -358,9 +497,7 @@ public class Sokobanlike extends Prog {
                 pos = new Coord();
                 pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
                 pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
-                //System.out.print(pos + " : ");
                 lrl = levelReader.next()+",";
-                //System.out.println(lrl);
                 builder.grid[pos.y()][pos.x()] = new Tile(pos);
                 if (lrl.length() == 1) break;
                 while (lrl.indexOf(',') != -1) {
@@ -392,7 +529,7 @@ public class Sokobanlike extends Prog {
         }
         builder.start();
     }
-    public void clearEditor() throws LevelBuilderException, FileNotFoundException {
+    public void clearEditor() {
         LevelEditor.instance.grid = new Tile[5][5];
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {
@@ -429,8 +566,6 @@ public class Sokobanlike extends Prog {
     public void saveEditorAs(String name) {
         try {
             File newF = new File(directory + name);
-            //if (!newF.exists())
-            newF.createNewFile();
             FileWriter fw = new FileWriter(newF, false);
             PrintWriter pw = new PrintWriter(fw);
             String saveDat = "";
@@ -439,7 +574,40 @@ public class Sokobanlike extends Prog {
                 for (Tile tile : tileLine) {
                     saveDat += tile.pos.x() + ":" + tile.pos.y() + "\n";
                     for (int x = 0; x < tile.types.size(); x++) {
-                        saveDat += tile.types.get(x).tt.id+TypeInfo.infoToString(tile.types.get(x).ti);;
+                        saveDat += tile.types.get(x).tt.id+TypeInfo.infoToString(tile.types.get(x).ti);
+                        if (x != tile.types.size() - 1)
+                            saveDat += ",";
+                    }
+                    saveDat += "\n";
+                }
+            }
+            pw.append(saveDat);
+            fw.close();
+            pw.close();
+        }
+        catch (Exception e) {
+            System.out.println("Failed to Save Custom Level");
+            e.printStackTrace();
+        }
+    }
+    public void saveEditorAs(String name, int dir) {
+        try {
+            File newF;
+            if (dir == 2)
+                newF = new File(savesDirectory + name);
+            else if (dir == 1)
+                newF = new File(levelDirectory + name);
+            else
+                newF = new File(directory + name);
+            FileWriter fw = new FileWriter(newF, false);
+            PrintWriter pw = new PrintWriter(fw);
+            String saveDat = "";
+            saveDat += LevelEditor.instance.grid[0].length + ":" + LevelEditor.instance.grid.length + "\n";
+            for (Tile[] tileLine : LevelEditor.instance.grid) {
+                for (Tile tile : tileLine) {
+                    saveDat += tile.pos.x() + ":" + tile.pos.y() + "\n";
+                    for (int x = 0; x < tile.types.size(); x++) {
+                        saveDat += tile.types.get(x).tt.id+TypeInfo.infoToString(tile.types.get(x).ti);
                         if (x != tile.types.size() - 1)
                             saveDat += ",";
                     }
@@ -509,8 +677,6 @@ public class Sokobanlike extends Prog {
             boolean isSelected = false;
             boolean isPressed = false;
 
-            //public StartButton() {}
-
             public void start() {
                 CameraManager.addToDraw(this, 1);
                 addToUpdate(this);
@@ -562,8 +728,6 @@ public class Sokobanlike extends Prog {
 
             boolean isSelected = false;
             boolean isPressed = false;
-
-            //public CustomButton() {}
 
             public void start() {
                 CameraManager.addToDraw(this, 1);
@@ -650,8 +814,6 @@ public class Sokobanlike extends Prog {
             boolean isSelected = false;
             boolean isPressed = false;
 
-            //public StartButton() {}
-
             public void start() {
                 CameraManager.addToDraw(this, 1);
                 addToUpdate(this);
@@ -709,6 +871,8 @@ public class Sokobanlike extends Prog {
             boolean isPressed = false;
 
             public TextField txt;
+
+            public int dir;
 
             public LoadButton() { txt = new TextField(); }
 
@@ -775,7 +939,6 @@ public class Sokobanlike extends Prog {
                 }
 
                 public void keyPressed(int e) {
-
                     if (e == KeyEvent.VK_BACK_SPACE) {
                         if (field.length() > 0)
                             field = field.substring(0, field.length()-1);
@@ -787,8 +950,9 @@ public class Sokobanlike extends Prog {
                     }
                     else if (e == KeyEvent.VK_ENTER) {
                         try {
-                            buildLevel(field).start();
+                            buildLevel(field, dir).start();
                             System.out.println("Loading Level " + field);
+                            destroy();
                             customMenu.destroy();
                         }
                         catch (Exception x) {
@@ -796,6 +960,23 @@ public class Sokobanlike extends Prog {
                         }
                     }
                     else {
+                        if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_CONTROL)) {
+                            if (e == KeyEvent.VK_COMMA) {
+                                System.out.println("Changing directory to " + directory);
+                                dir = 0;
+                                return;
+                            }
+                            else if (e == KeyEvent.VK_PERIOD) {
+                                System.out.println("Changing directory to " + levelDirectory);
+                                dir = 1;
+                                return;
+                            }
+                            else if (e == KeyEvent.VK_SLASH) {
+                                System.out.println("Changing directory to " + savesDirectory);
+                                dir = 2;
+                                return;
+                            }
+                        }
                         if (KeyEvent.getKeyText(e).length() > 1) return;
                         if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_SHIFT)) {
                             System.out.println("adding "+(char) e);
@@ -827,8 +1008,6 @@ public class Sokobanlike extends Prog {
 
             boolean isSelected = false;
             boolean isPressed = false;
-
-            //public CustomButton() {}
 
             public void start() {
                 CameraManager.addToDraw(this, 1);
@@ -879,23 +1058,41 @@ public class Sokobanlike extends Prog {
         public File file;
         public Tile[][] grid;
         public ArrayList<GridModRequest> moveQueue = new ArrayList<GridModRequest>();
+        public ArrayList<Context> removeQueue = new ArrayList<>();
         public boolean gameOver = false;
-
-        /*
-
-        probably need a check queue too
-
-        */
-        public ArrayList<Input> inputStack;
+        public boolean gameWon = false;
+        public ArrayList<Input> inputStack = new ArrayList<Input>();
         public boolean isPaused = false;
+        public boolean settingUp = false;
+        public boolean moveResolveEmpty = false;
 
         public void start() {
             activeLevel = this;
             CameraManager.addToDraw(this, 1);
             KeyDetect.instance.addP(this);
-            TypeInfo.PlayerInfo.awake = 0;
-            if (activeLevel != LevelEditor.instance)
+            settingUp = true;
+            if (this != LevelEditor.instance) {
                 reload();
+            }
+            settingUp = false;
+        }
+
+        public void clearData() {
+            gameWon = false;
+            gameOver = false;
+            isPaused = false;
+            TypeInfo.PlayerInfo.awake = 0;
+            TypeInfo.FlagInfo.numUp = 0;
+            if (LevelEditor.instance != null && LevelEditor.instance.hidden) {
+                for (Integer i : TypeInfo.ToggleInfo.helds.keySet())
+                    TypeInfo.ToggleInfo.helds.put(i, 0);
+                for (Integer i : TypeInfo.GateInfo.states.keySet())
+                    TypeInfo.GateInfo.states.put(i, false);
+            }
+            else {
+                TypeInfo.ToggleInfo.helds.clear();
+                TypeInfo.GateInfo.states.clear();
+            }
         }
 
         public void destroy() {
@@ -904,26 +1101,26 @@ public class Sokobanlike extends Prog {
             activeLevel = null;
         }
 
+        public void pause() {
+            isPaused = true;
+            levelMenu.start();
+        }
+
+        public void unpause() {
+            isPaused = false;
+            levelMenu.destroy();
+        }
+
         public void keyPressed(int e) {
             if (e == Input.esc.key) {
-                isPaused = !isPaused;
                 if (isPaused)
-                    levelMenu.start();
+                    unpause();
                 else
-                    levelMenu.destroy();
+                    pause();
                 return;
             }
-            if (isPaused || Level.activeLevel == LevelEditor.instance) return;
-            for (int x = 0; x < grid[0].length; x++) {
-                for (int y = 0; y < grid.length; y++) {
-                    if (grid[y][x] == null) break;
-                    for (TypeInst t : grid[y][x].types) {
-                        t.tt.playerInput.apply((new Context(null, null, null)).newInputContext(this, grid[y][x], t, Input.inputOf(e)));
-                    }
-                }
-            }
             if (e == Input.debug.key) {
-                System.out.println("DEBUG---------------");
+                System.out.println("DEBUG #1 ---------------");
                 for (Integer i : TypeInfo.GateInfo.states.keySet()) {
                     System.out.println("Key: " + i + ", Open?: " + TypeInfo.GateInfo.states.get(i));
                 }
@@ -931,58 +1128,99 @@ public class Sokobanlike extends Prog {
                 for (Integer i : TypeInfo.ToggleInfo.helds.keySet()) {
                     System.out.println("Key: " + i + ", Held: " + TypeInfo.ToggleInfo.helds.get(i));
                 }
-                System.out.println("END DEBUG-----------");
+                System.out.println("END DEBUG #1 -----------");
                 return;
             }
-            System.out.println("First Check ______________/");
-            resolveMoves();
+            if (isPaused || gameOver || gameWon || Level.activeLevel == LevelEditor.instance) return;
+            if (Input.inputOf(e) == null) return;
+            inputStack.add(Input.inputOf(e));
             for (int x = 0; x < grid[0].length; x++) {
                 for (int y = 0; y < grid.length; y++) {
                     if (grid[y][x] == null) break;
                     for (TypeInst t : grid[y][x].types) {
-                        t.tt.playerInputEnd.apply((new Context(null, null, null)).newInputContext(this, grid[y][x], t, Input.inputOf(e)));
+                        t.tt.playerInput.apply(new InputContext(this, grid[y][x], t, Input.inputOf(e)));
                     }
                 }
             }
-            System.out.println("Second Check ______________/");
+            if (e == Input.debug.key) {
+                System.out.println("DEBUG #2 ---------------");
+                for (Integer i : TypeInfo.GateInfo.states.keySet()) {
+                    System.out.println("Key: " + i + ", Open?: " + TypeInfo.GateInfo.states.get(i));
+                }
+                System.out.println("");
+                for (Integer i : TypeInfo.ToggleInfo.helds.keySet()) {
+                    System.out.println("Key: " + i + ", Held: " + TypeInfo.ToggleInfo.helds.get(i));
+                }
+                System.out.println("END DEBUG #2 -----------");
+                return;
+            }
+            System.out.println("\nFirst Check ______________/");
             resolveMoves();
-            System.out.println("\n");
+            for (int x = 0; x < grid[0].length; x++) {
+                for (int y = 0; y < grid.length; y++) {
+                    grid[y][x].stand(this);
+                }
+            }
+            TypeInfo.BeltInfo.moved.clear();
         }
 
         public void resolveMoves() {
             TreeMap<Coord, GridModRequest> coords = new TreeMap<Coord, GridModRequest>();
-            ArrayList<ArrayList<GridModRequest>> gmrs = new ArrayList<ArrayList<GridModRequest>>();
-            //ArrayList<ArrayList<GridModRequest>> gmrsHolder = new ArrayList<ArrayList<GridModRequest>>();
+            TreeMap<Integer, ArrayList<GridModRequest>> allMoves = new TreeMap<Integer, ArrayList<GridModRequest>>();
+            HashSet<TypeInst> moved = new HashSet<TypeInst>();
+            ArrayList<MoveContext> conseqs = new ArrayList<MoveContext>();
             int iter = 0;
             while (true) {
                 iter++;
-                System.out.println("resolve iteration " + iter);
+                System.out.println("\nresolve iteration " + iter);
+                coords.clear();
+                // pull requests
                 for (GridModRequest r : moveQueue) {
-                    pullRequests(r, gmrs, 0);
+                    pullRequests(r, allMoves);
                 }
-                for (ArrayList<GridModRequest> rList : gmrs) {
-                    for (GridModRequest r : rList) {
-                        /*
-
-                        vet moved typeInst's requests with block check
-
-                        */
+                // build the moved set
+                for (int d : allMoves.keySet())
+                    for (GridModRequest r : allMoves.get(d))
+                        moved.add(r.move.srcType);
+                // sort the moveds requests
+                for (TypeInst ti : moved) {
+                    ti.requests.sort(GridModRequest::compareTo);
+                    System.out.println("Sorteds " + ti + ": {");
+                    for (GridModRequest gmr : ti.requests) {
+                        System.out.println(gmr);
+                    }
+                    System.out.println("}");
+                }
+                // determine which moves are used
+                // definitely inefficient, later problem
+                // need to consume requests that point counter to another request or the same TypeInst
+                boolean superseded;
+                int dirs;
+                for (int d : allMoves.keySet()) {
+                    for (TypeInst ti : moved) {
+                        superseded = false;
+                        int dir = 0;
+                        for (GridModRequest gmr : ti.requests) {
+                            if (!gmr.isConsumed) {
+                                if (gmr.move.depth < d) { superseded = true; System.out.println("found higher priority move"); }
+                                else if (gmr.move.depth == d) { if (superseded) { System.out.println("superseded"); gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ } superseded = true; }
+                                else if (superseded) {  System.out.println("superseded"); gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ }
+                            }
+                        }
+                    }
+                    for (GridModRequest r : allMoves.get(d)) {
+                        if (r.superseded) continue;
                         if (r.isConsumed) {
-                            if (coords.containsKey(r.move.srcTile.pos)) {
-                                if (coords.get(r.move.srcTile.pos) != null)
-                                    coords.get(r.move.srcTile.pos).consume();
-                                coords.put(r.move.srcTile.pos, null);
-                            }
-                            else {
-                                coords.put(r.move.srcTile.pos, r);
-                            }
                             continue;
                         }
                         if (coords.containsKey(r.move.tile.pos)) {
-                            if (coords.get(r.move.tile.pos) != null)
-                                coords.get(r.move.tile.pos).consume();
-                            r.consume();
-                            coords.put(r.move.tile.pos, null);
+                            if (coords.get(r.move.tile.pos).isConsumed)
+                                coords.put(r.move.tile.pos, r);
+                            else {
+                                if (coords.get(r.move.tile.pos).move.depth == r.move.depth)
+                                    coords.get(r.move.tile.pos).consume();
+                                r.consume();
+                            }
                         }
                         else {
                             coords.put(r.move.tile.pos, r);
@@ -990,59 +1228,75 @@ public class Sokobanlike extends Prog {
                     }
                 }
                 moveQueue.clear();
-                for (int d = gmrs.size()-1; d>=0; d--) {
-                    for (GridModRequest r : gmrs.get(d)) {
-                        //System.out.println(r.fromPos +" -> "+ r.toPos + ": " + coords.get(r.toPos));
+                // clear the requests
+                for (TypeInst ti : moved) {
+                    ti.requests.clear();
+                }
+                for (int d : allMoves.descendingKeySet()) {
+                    for (GridModRequest r : allMoves.get(d)) {
                         if (r.move.depth < 0) continue;
+                        if (r.superseded) continue;
                         if (r.isConsumed) {
+                            System.out.println("Om nom nom yummy move");
                             if (r.move.tile.pos != null) {
                                 r.move.type.tt.blocked.apply(r.move);
                             }
                         }
                         else {
-                            //System.out.println(r.type + " move");
-                            //System.out.print(grid[r.fromPos.y()][r.fromPos.x()].types + " -> ");
+                            System.out.println("Executing move: " + r);
                             if (r.move.srcTile.pos != null) {
-                                if (grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].types.contains(r.move.srcType)) {
-                                    grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].types.remove(r.move.srcType);
-                                    grid[r.move.tile.pos.y()][r.move.tile.pos.x()].types.add(r.move.srcType);
+                                if (r.move.srcTile.types.contains(r.move.srcType)) {
+                                    r.move.srcTile.types.remove(r.move.srcType);
+                                    r.move.tile.types.add(r.move.srcType);
                                     MoveContext pushC = new MoveContext(r.move.curLevel, r.move.tile, r.move.type, null, null, r.move.dir, r.move.max, r.move.depth);
-                                    grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].exit(pushC);
-                                    grid[r.move.tile.pos.y()][r.move.tile.pos.x()].push(r.move);
+                                    r.move.srcTile.exit(pushC);
+                                    if (r.cascadeContext != null)
+                                        conseqs.add(r.cascadeContext);
                                 } else {
-                                    /*System.out.println("expected " + r.move.type.tt + " at " + r.move.srcTile.pos + ", found: ");
-                                    for (TypeInst ti : grid[r.move.srcTile.pos.y()][r.move.srcTile.pos.x()].types)
-                                        System.out.print(ti.tt + ", ");
-                                    System.out.println();*/
-                                    System.out.println("JUKED");
+                                    System.out.println("JUKED, expected " + r.move.srcType.tt + " at " + r.move.srcTile.pos);
                                     r.consume();
                                     continue;
                                 }
                             } else {
                                 grid[r.move.tile.pos.y()][r.move.tile.pos.x()].types.add(r.move.srcType);
                             }
-                            if (r.cascade != null) {
-                                if (r.cascade.apply(r.cascadeContext)) addMove(r.cascadeContext.request);
-                            }
-                            else if (r.cascadeContext != null)  {
-                                if (r.cascadeContext.tile.attemptPush(r.cascadeContext))
-                                    addMove(r.cascadeContext.request);
-                            }
                         }
                     }
                 }
-                gmrs.clear();
-                if (moveQueue.isEmpty()) { /*System.out.println("No Cascade :(");*/ break; }
+                allMoves.clear();
+                for (MoveContext mc : conseqs) {
+                    if (grid[mc.tile.pos.y()][mc.tile.pos.x()].attemptPush(mc)) {
+                        mc.srcType.requests.add(mc.request);
+                        addMove(mc.request);
+                    }
+                }
+                conseqs.clear();
+                moved.clear();
+                moveResolveEmpty = moveQueue.isEmpty();
+                for (Context c : removeQueue) {
+                    c.srcTile.types.remove(c.srcType);
+                }
+                removeQueue.clear();
+                System.out.println("End queue: ");
+                for (GridModRequest r : moveQueue) {
+                    System.out.println(r);
+                }
+                for (int x = 0; x < grid[0].length; x++) {
+                    for (int y = 0; y < grid.length; y++) {
+                        grid[y][x].rmCycle(this);
+                    }
+                }
+                if (moveQueue.isEmpty()) { break; }
             }
-            //System.out.println("Ending Move Resolving\n__________________\n");
         }
-        public void pullRequests(GridModRequest r, ArrayList<ArrayList<GridModRequest>> plane, int d) {
-            if (plane.size() <= d)
-                plane.add(new ArrayList<GridModRequest>(List.of(r)));
+
+        public void pullRequests(GridModRequest r, TreeMap<Integer, ArrayList<GridModRequest>> moves) {
+            if (moves.containsKey(r.move.depth))
+                moves.get(r.move.depth).add(r);
             else
-                plane.get(d).add(r);
+                moves.put(r.move.depth, new ArrayList<GridModRequest>(List.of(r)));
             for (GridModRequest gmr : r.queue)
-                pullRequests(gmr, plane, d+1);
+                pullRequests(gmr, moves);
         }
 
         public void render(Graphics g) {
@@ -1063,8 +1317,8 @@ public class Sokobanlike extends Prog {
         }
 
         public void reload() {
+            clearData();
             try {
-                //Level builder = new Level();
                 Scanner levelReader = new Scanner(file);
                 String lrl = levelReader.next();
                 Coord pos;
@@ -1076,7 +1330,6 @@ public class Sokobanlike extends Prog {
                         pos = new Coord();
                         pos.x = Integer.parseInt(lrl.substring(0, lrl.indexOf(":")));
                         pos.y = Integer.parseInt(lrl.substring(lrl.indexOf(":") + 1));
-                        //System.out.print(pos + " : ");
                         lrl = levelReader.next()+",";
                         grid[pos.y()][pos.x()] = new Tile(pos);
                         if (lrl.length() == 1) break;
@@ -1087,6 +1340,7 @@ public class Sokobanlike extends Prog {
                             } else {
                                 tt = TileType.tileTypeOf(Integer.parseInt(lrl.substring(0, lrl.indexOf(","))));
                                 grid[pos.y()][pos.x()].types.add(new TypeInst(tt, TypeInfo.infoOfType(tt)));
+
                             }
                             lrl = lrl.substring(lrl.indexOf(',') + 1);
 
@@ -1101,6 +1355,12 @@ public class Sokobanlike extends Prog {
             catch (Exception e) {
                 System.out.println("Error Reloading File");
                 e.printStackTrace();
+                return;
+            }
+            for (int x = 0; x < grid[0].length; x++) {
+                for (int y = 0; y < grid.length; y++) {
+                    grid[y][x].stand(this);
+                }
             }
         }
 
@@ -1126,13 +1386,25 @@ public class Sokobanlike extends Prog {
             mc.request = ret;
             return ret;
         }
-        public void addMove(GridModRequest gmr) {
-            moveQueue.add(gmr);
+        public void addMove(GridModRequest gmr) { moveQueue.add(gmr); /*gmr.move.srcType.addRequest(gmr);*/ }
+
+        public void winGame() {
+            gameWon = true;
+            isPaused = true;
+            levelMenu.start();
+        }
+
+        public boolean onBoard(Coord c) {
+            return c.x >= 0 && c.x < grid[0].length && c.y >= 0 && c.y < grid.length;
+        }
+        public boolean onBoard(int x, int y) {
+            return x >= 0 && x < grid[0].length && y >= 0 && y < grid.length;
         }
     }
     public class LevelEditor extends Level {
         public static LevelEditor instance;
         public Tile copied;
+        public boolean hidden = false;
         public LevelEditor() {
             new TileDisplay();
             new TileInventory();
@@ -1140,6 +1412,7 @@ public class Sokobanlike extends Prog {
 
         public void start() {
             super.start();
+            hidden = false;
             instance = this;
             MouseDetect.instance.addP(this);
             TileInventory.instance.start();
@@ -1148,6 +1421,17 @@ public class Sokobanlike extends Prog {
 
         public void destroy() {
             super.destroy();
+            hidden = false;
+            MouseDetect.instance.removeP(this);
+            TileInventory.instance.destroy();
+            KeyDetect.instance.removeP(this);
+            if (TileDisplay.instance.isOpen)
+                TileDisplay.instance.destroy();
+        }
+
+        public void hide() {
+            super.destroy();
+            hidden = true;
             MouseDetect.instance.removeP(this);
             TileInventory.instance.destroy();
             KeyDetect.instance.removeP(this);
@@ -1298,10 +1582,18 @@ public class Sokobanlike extends Prog {
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     if (typePane.isColliding(new PointCollider(MouseDetect.instance.mousePos()))) {
                         int i = (int) ((MouseDetect.instance.mousePos().x - typePane.og.x) / 22);
-                        if (t.types.get(i).tt == TileType.player || t.types.get(i).tt == TileType.belt)
-                            t.types.get(i).ti.nudge(0, 1);
-                        else
-                            t.types.get(i).ti.nudge();
+                        if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_SHIFT)) {
+                            if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_CONTROL))
+                                t.types.get(i).ti.antinudge(1);
+                            else
+                                t.types.get(i).ti.antinudge(0);
+                        }
+                        else {
+                            if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_CONTROL))
+                                t.types.get(i).ti.nudge(1);
+                            else
+                                t.types.get(i).ti.nudge(0);
+                        }
                     }
                 }
             }
@@ -1390,8 +1682,8 @@ public class Sokobanlike extends Prog {
                     if (TileDisplay.instance.t == null) return;
                     if (typePane.isColliding(new PointCollider(MouseDetect.instance.mousePos()))) {
                         int i = (int) ((MouseDetect.instance.mousePos().x - typePane.og.x) / 22 + tpr*row);
+                        if (TileType.tileTypeOf(i) == null) return;
                         TypeInst toAdd = new TypeInst(TileType.tileTypeOf(i), TypeInfo.infoOfType(TileType.tileTypeOf(i)));
-                        if (toAdd == null) return;
                         TileDisplay.instance.t.types.add(toAdd);
                         TileDisplay.instance.typePane.length.d+=22;
                     }
@@ -1417,8 +1709,8 @@ public class Sokobanlike extends Prog {
                 g.fillRect(grabber.og.x(), (int) (grabber.og.y() - grabber.width), (int) grabber.length.d, (int) grabber.width * 2);
                 g.setColor(Color.lightGray);
                 g.drawRect(grabber.og.x(), (int) (grabber.og.y() - grabber.width), (int) grabber.length.d, (int) grabber.width * 2);
-                //g.setColor(Color.black);
-                //g.drawString(row+1+"",grabber.og.x()+2,grabber.og.y());
+                g.setColor(Color.black);
+                g.drawString(row+1+"",grabber.og.x()+2,grabber.og.y());
                 g.setColor(Color.white);
                 g.fillRect(typePane.og.x(), (int) (typePane.og.y() - typePane.width), (int) typePane.length.d, (int) typePane.width * 2);
                 TypeInst type;
@@ -1429,19 +1721,30 @@ public class Sokobanlike extends Prog {
             }
         }
     }
-    public class GridModRequest {
+
+    public class GridModRequest implements Comparable<GridModRequest> {
         public MoveContext move;
         public Function<MoveContext, Boolean> cascade;
         public MoveContext cascadeContext;
+        public MoveContext src;
         public ArrayList<GridModRequest> queue = new ArrayList<GridModRequest>();
+        public int priority = 0;
         public boolean isConsumed = false;
+        public boolean superseded = false;
         public GridModRequest(MoveContext c) { move = c; }
         public GridModRequest(MoveContext c, Function<MoveContext, Boolean> cFunc, MoveContext cCont, ArrayList<GridModRequest> q) { move = c; cascade = cFunc; cascadeContext = cCont; queue = q; }
-        public void consume() { if (isConsumed) return; isConsumed = true; if (queue != null) for (GridModRequest gmr : queue) gmr.consume(); }
+        public void consume() { System.out.println("Consuming: " + this); if (isConsumed) return; isConsumed = true; if (src != null) src.request.consume(); if (queue != null) for (GridModRequest gmr : queue) gmr.consume(); }
+        public void supersede() { System.out.println("Supersede: " + this); if (superseded) return; superseded = true; if (queue != null) for (GridModRequest gmr : queue) gmr.supersede(); }
+
+        public int compareTo(GridModRequest o) {
+            //if (priority > o.priority) return 1;
+            //if (priority < o.priority) return -1;
+            return Integer.compare(move.depth, o.move.depth);
+        }
 
         @Override
         public String toString() {
-            return "moving " + move.srcType.tt + " from " + move.srcTile.pos + " to " + move.tile.pos + (cascade == null ? "no cascade " : "cascading ") + (queue.isEmpty() ? "no queue " : "with queue of length" + queue.size());
+            return "moving " + move.srcType.tt+" ("+move.srcType.toString().substring(move.srcType.toString().indexOf("@")) + " from " + move.srcTile.pos + " to " + move.tile.pos + (cascade == null ? " no cascade " : " cascading ") + (queue.isEmpty() ? "no queue" : "with queue of length " + queue.size()) + " at depth " + move.depth + " " + move.src + (priority != 0 ? " prioritized at " + priority : "");
         }
     }
 
@@ -1573,8 +1876,10 @@ public class Sokobanlike extends Prog {
         public static LoadButton load;
         public static SaveButton save;
         public static SaveAsButton saveAs;
+        public static TestPlayButton testPlay;
+        public static WinScreen winScreen;
 
-        public LevelMenu() { resume = new ResumeButton(); restart = new RestartButton(); exit = new ExitButton(); save = new SaveButton(); saveAs = new SaveAsButton(); load = new LoadButton(); }
+        public LevelMenu() { resume = new ResumeButton(); restart = new RestartButton(); exit = new ExitButton(); save = new SaveButton(); saveAs = new SaveAsButton(); load = new LoadButton(); testPlay = new TestPlayButton(); }
 
         public void start() {
             resume.start();
@@ -1584,6 +1889,7 @@ public class Sokobanlike extends Prog {
                 save.start();
                 saveAs.start();
                 load.start();
+                testPlay.start();
             }
             CameraManager.addToDraw(this, 1);
         }
@@ -1596,6 +1902,7 @@ public class Sokobanlike extends Prog {
                 save.destroy();
                 saveAs.destroy();
                 load.destroy();
+                testPlay.destroy();
             }
             CameraManager.removeToDraw(this, 1);
         }
@@ -1603,13 +1910,14 @@ public class Sokobanlike extends Prog {
         public void render(Graphics g) {
             g.setColor(Color.gray);
             if (Level.activeLevel == LevelEditor.instance) {
-                g.fillRect(0,0,250, 450);
+                g.fillRect(0,0,250, 520);
                 resume.render(g);
                 restart.render(g);
                 exit.render(g);
                 save.render(g);
                 saveAs.render(g);
                 load.render(g);
+                testPlay.render(g);
             }
             else {
                 g.fillRect(0,0,250, 240);
@@ -1652,7 +1960,7 @@ public class Sokobanlike extends Prog {
             }
 
             public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
-            public void mouseReleased(MouseEvent e) { if (isPressed) { levelMenu.destroy(); Level.activeLevel.isPaused = false; } }
+            public void mouseReleased(MouseEvent e) { if (isPressed) { Level.activeLevel.unpause(); } }
 
             public void render(Graphics g) {
                 if (isSelected && isPressed)
@@ -1704,7 +2012,6 @@ public class Sokobanlike extends Prog {
 
             public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
             public void mouseReleased(MouseEvent e) { if (isPressed) {
-                levelMenu.destroy();
                 if (Level.activeLevel == LevelEditor.instance) {
                     try {
                         clearEditor();
@@ -1716,7 +2023,7 @@ public class Sokobanlike extends Prog {
                 }
                 else
                     Level.activeLevel.reload();
-                Level.activeLevel.isPaused = false;
+                Level.activeLevel.unpause();
             } }
 
             public void render(Graphics g) {
@@ -1769,12 +2076,19 @@ public class Sokobanlike extends Prog {
 
             public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
             public void mouseReleased(MouseEvent e) { if (isPressed) {
-                Level.activeLevel.isPaused = false;
-                levelMenu.destroy();
+                Level.activeLevel.unpause();
                 if (Level.activeLevel == LevelEditor.instance)
                     customMenu.start();
-                else
-                    levelSelect.start();
+                else {
+                    if (LevelEditor.instance != null && LevelEditor.instance.hidden) {
+                        Level.activeLevel.destroy();
+                        LevelEditor.instance.start();
+                        return;
+                    }
+                    else {
+                        levelSelect.start();
+                    }
+                }
                 Level.activeLevel.destroy();
             } }
 
@@ -1789,8 +2103,12 @@ public class Sokobanlike extends Prog {
                 g.setColor(Color.black);
                 if (Level.activeLevel == LevelEditor.instance)
                     g.drawString("Exit Editor", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
-                else
-                    g.drawString("Exit Level", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
+                else {
+                    if (LevelEditor.instance != null && LevelEditor.instance.hidden)
+                        g.drawString("Return to Editor", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
+                    else
+                        g.drawString("Exit Level", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
+                }
             }
         }
 
@@ -1798,6 +2116,7 @@ public class Sokobanlike extends Prog {
 
             RectCollider coll = new RectCollider(new Coord(50, 260), new PCoord(0, 150), 20);
             TextField txt;
+            public int dir;
 
             public enum ColorState {
                 rest(new Color(0, 255, 0)),
@@ -1879,11 +2198,11 @@ public class Sokobanlike extends Prog {
                     }
                     else if (e == KeyEvent.VK_ENTER) {
                         try {
-                            LevelEditor.instance.destroy();
-                            buildEditor(field);
-                            Level.activeLevel.isPaused = false;
+                            if (Level.activeLevel != null)
+                                Level.activeLevel.destroy();
+                            buildEditor(field, dir);
+                            Level.activeLevel.unpause();
                             destroy();
-                            levelMenu.destroy();
                         }
                         catch (Exception x) {
                             System.out.println("Couldn't build level " + field);
@@ -1892,6 +2211,23 @@ public class Sokobanlike extends Prog {
                         System.out.println("Loading " + field);
                     }
                     else {
+                        if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_CONTROL)) {
+                            if (e == KeyEvent.VK_COMMA) {
+                                System.out.println("Changing directory to " + directory);
+                                dir = 0;
+                                return;
+                            }
+                            else if (e == KeyEvent.VK_PERIOD) {
+                                System.out.println("Changing directory to " + levelDirectory);
+                                dir = 1;
+                                return;
+                            }
+                            else if (e == KeyEvent.VK_SLASH) {
+                                System.out.println("Changing directory to " + savesDirectory);
+                                dir = 2;
+                                return;
+                            }
+                        }
                         if (KeyEvent.getKeyText(e).length() > 1) return;
                         if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_SHIFT)) {
                             System.out.println("adding "+(char) e);
@@ -1961,6 +2297,7 @@ public class Sokobanlike extends Prog {
 
             RectCollider coll = new RectCollider(new Coord(50, 400), new PCoord(0, 150), 20);
             TextField txt;
+            public int dir;
 
             public enum ColorState {
                 rest(new Color(0, 255, 0)),
@@ -1976,6 +2313,7 @@ public class Sokobanlike extends Prog {
                 addToUpdate(this);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
+                dir = 2;
             }
 
             public void destroy() {
@@ -2031,6 +2369,133 @@ public class Sokobanlike extends Prog {
                 }
 
                 public void keyPressed(int e) {
+                    if (e == KeyEvent.VK_BACK_SPACE) {
+                        if (field.length() > 0)
+                            field = field.substring(0, field.length()-1);
+                        System.out.println(field);
+                    }
+                    else if (e == KeyEvent.VK_ESCAPE) {
+                        destroy();
+                        System.out.println("closing field");
+                    }
+                    else if (e == KeyEvent.VK_ENTER) {
+                        saveEditorAs(field, dir);
+                        System.out.println("saving as " + field + " to " + (dir == 2 ? savesDirectory : (dir == 1 ? levelDirectory : directory)));
+                        destroy();
+                    }
+                    else {
+                        if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_CONTROL)) {
+                            if (e == KeyEvent.VK_COMMA) {
+                                System.out.println("Changing directory to " + directory);
+                                dir = 0;
+                                return;
+                            }
+                            else if (e == KeyEvent.VK_PERIOD) {
+                                System.out.println("Changing directory to " + levelDirectory);
+                                dir = 1;
+                                return;
+                            }
+                            else if (e == KeyEvent.VK_SLASH) {
+                                System.out.println("Changing directory to " + savesDirectory);
+                                dir = 2;
+                                return;
+                            }
+                        }
+                        if (KeyEvent.getKeyText(e).length() > 1) return;
+                        if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_SHIFT)) {
+                            System.out.println("adding "+(char) e);
+                            field += (char) e;
+                            System.out.println(field);
+                            return;
+                        }
+                        System.out.println("adding "+(""+(char) e).toLowerCase());
+                        field += (""+(char) e).toLowerCase();
+                        System.out.println(field);
+                    }
+                }
+            }
+        }
+
+        public class TestPlayButton extends Script {
+
+            RectCollider coll = new RectCollider(new Coord(50, 470), new PCoord(0, 150), 20);
+            TextField txt;
+
+            public enum ColorState {
+                rest(new Color(0, 255, 0)),
+                hover(new Color(0, 225, 0)),
+                press(new Color(200, 20, 0));
+                Color c;
+                ColorState(Color c) { this.c = c; }
+            }
+
+            public TestPlayButton() { }
+
+            public void start() {
+                addToUpdate(this);
+                MouseDetect.instance.addP(this);
+                MouseDetect.instance.addR(this);
+            }
+
+            public void destroy() {
+                removeToUpdate(this);
+                MouseDetect.instance.removeP(this);
+                MouseDetect.instance.removeR(this);
+            }
+
+            boolean isSelected = false;
+            boolean isPressed = false;
+
+            public void update() {
+                isSelected = coll.isColliding(new PointCollider(MouseDetect.instance.mousePos()));
+                if (!isSelected) isPressed = false;
+            }
+
+            public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
+            public void mouseReleased(MouseEvent e) { if (isPressed) {
+                try {
+                    Level.activeLevel.unpause();
+                    LevelEditor.instance.hide();
+                    buildLevel("LevelEditor").start();
+                }
+                catch (Exception ex) {
+                    System.out.println("Build Unsuccessful");
+                    System.out.println(ex.getMessage());
+                    ex.printStackTrace();
+                    LevelEditor.instance.start();
+                }
+            } }
+
+            public void render(Graphics g) {
+                if (isSelected && isPressed)
+                    g.setColor(Minesweeper.MainMenu.StartButton.ColorState.press.c);
+                else if (isSelected)
+                    g.setColor(Minesweeper.MainMenu.StartButton.ColorState.hover.c);
+                else
+                    g.setColor(Minesweeper.MainMenu.StartButton.ColorState.rest.c);
+                g.fillRect((int) coll.og.x, (int) (coll.og.y - coll.width), (int) coll.length.d, (int) coll.width * 2);
+                g.setColor(Color.black);
+                g.drawString("Test Saved Editor", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
+            }
+
+            public class TextField extends Script {
+                public String field = "";
+                public TextField() { sim = false; }
+                public void start() {
+                    System.out.println("open field");
+                    field = "";
+                    sim = true;
+                    //CameraManager.addToDraw(this, 1);
+                    KeyDetect.instance.addP(this);
+                }
+
+                public void destroy() {
+                    sim = false;
+                    //CameraManager.removeToDraw(this, 1);
+                    KeyDetect.instance.removeP(this);
+                }
+
+                public void keyPressed(int e) {
 
                     if (e == KeyEvent.VK_BACK_SPACE) {
                         if (field.length() > 0)
@@ -2060,6 +2525,33 @@ public class Sokobanlike extends Prog {
                 }
             }
         }
+
+        public class WinScreen extends Script {
+            public int framesActive;
+            public WinScreen() { sim = false; }
+
+            public void start() {
+                sim = true;
+                framesActive = 0;
+                addToUpdate(this);
+                CameraManager.addToDraw(this, 1);
+            }
+
+            public void destroy() {
+                sim = true;
+                framesActive = 0;
+                removeToUpdate(this);
+                CameraManager.removeToDraw(this, 1);
+            }
+
+            public void update() {
+                framesActive++;
+            }
+
+            public void render(Graphics g) {
+
+            }
+        }
     }
 
     public class Tile {
@@ -2081,7 +2573,7 @@ public class Sokobanlike extends Prog {
             types = new ArrayList<>(t.types);
         }
 
-        public Boolean attemptPull(MoveContext c) {
+        public boolean attemptPull(MoveContext c) {
             c.tile = this;
             for (TypeInst t : types) {
                 c.type = t;
@@ -2089,15 +2581,20 @@ public class Sokobanlike extends Prog {
             }
             return true;
         }
-        public Boolean attemptPush(MoveContext c) {
+        public boolean attemptPush(MoveContext c) {
             c.tile = this;
-            for (TypeInst t : types) {
+            /*for (TypeInst t : types) {
+                for (TypeInst t : types) {
                 c.type = t;
                 if (!t.tt.attemptPush.apply(c)) return false;
+            }*/
+            for (int x = types.size()-1; x >= 0; x--) {
+                c.type = types.get(x);
+                if (!types.get(x).tt.attemptPush.apply(c)) return false;
             }
             return true;
         }
-        public Boolean attemptPass(MoveContext c) {
+        public boolean attemptPass(MoveContext c) {
             c.tile = this;
             for (TypeInst t : types) {
                 c.type = t;
@@ -2105,7 +2602,7 @@ public class Sokobanlike extends Prog {
             }
             return true;
         }
-        public Boolean pull(MoveContext c) {
+        public boolean pull(MoveContext c) {
             c.tile = this;
             for (TypeInst t : types) {
                 c.type = t;
@@ -2113,17 +2610,15 @@ public class Sokobanlike extends Prog {
             }
             return true;
         }
-        public Boolean push(MoveContext c) {
+        public boolean push(MoveContext c) {
             c.tile = this;
-            //System.out.println("Pushing: ");
-            for (TypeInst t : types) {
-                //System.out.println(t.tt);
-                c.type = t;
-                if (!t.tt.push.apply(c)) return false;
+            for (int x = types.size()-1; x >= 0; x--) {
+                c.type = types.get(x);
+                if (!types.get(x).tt.push.apply(c)) return false;
             }
             return true;
         }
-        public Boolean pass(MoveContext c) {
+        public boolean pass(MoveContext c) {
             c.tile = this;
             for (TypeInst t : types) {
                 c.type = t;
@@ -2131,15 +2626,29 @@ public class Sokobanlike extends Prog {
             }
             return true;
         }
-        public Boolean exit(MoveContext c) {
+        public boolean exit(MoveContext c) {
             c.tile = this;
-            //System.out.println("Exiting: ");
-            for (TypeInst t : types) {
-                //System.out.println(t.tt);
-                c.type = t;
-                if (!t.tt.exit.apply(c)) return false;
+            for (int x = types.size()-1; x >= 0; x--) {
+                c.type = types.get(x);
+                if (!types.get(x).tt.exit.apply(c)) return false;
             }
             return true;
+        }
+        public void stand(Level l) {
+            Context c = new Context(l, this, null);
+            for (TypeInst t : types) {
+                t.ti.hasPushed = false;
+                t.ti.isMoving = false;
+                c.srcType = t;
+                t.tt.stand.apply(c);
+            }
+        }
+        public void rmCycle(Level l) {
+            Context c = new Context(l, this, null);
+            for (TypeInst t : types) {
+                c.srcType = t;
+                t.tt.moveResolveCycle.apply(c);
+            }
         }
 
         public boolean hasType(TileType tt) {
@@ -2155,7 +2664,7 @@ public class Sokobanlike extends Prog {
         @Override
         public String toString() {
             String ret = "";
-            for (TypeInst ti : types) {
+            for (TypeInst ti : types.reversed()) {
                 ret += ti.tt + ", ";
             }
             return pos + " with " + ret;
@@ -2163,19 +2672,18 @@ public class Sokobanlike extends Prog {
     }
     public enum TileType {
         empty(0,
-                GenericInput.ignore.func, GenericInput.ignore.func,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.ignore.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
                 g.drawImage(Sprites.grass.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
-                //g.fillRect(c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20);
+
             else
                 g.drawImage(Sprites.grass.i, c.c.x(), c.c.y(), 20, 20, null);
-                //g.fillRect(c.c.x(), c.c.y(), 20, 20);
         }),
         wall(1,
-                GenericInput.ignore.func, GenericInput.ignore.func,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.ignore.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.block.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
@@ -2217,7 +2725,7 @@ public class Sokobanlike extends Prog {
             }
         }),
         box(2,
-                GenericInput.ignore.func, GenericInput.ignore.func,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.ignore.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.line.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
@@ -2227,7 +2735,7 @@ public class Sokobanlike extends Prog {
                 g.drawImage(Sprites.box.i, c.c.x(), c.c.y(), 20, 20, null);
         }),
         player(3,
-               GenericInput.follow.func, GenericInput.ignore.func,
+               GenericInput.follow.func, GenericHold.ignore.func, GenericHold.ignore.func,
                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                GenericMove.ignore.func, GenericMove.line.func, GenericMove.ignore.func,
                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
@@ -2255,7 +2763,7 @@ public class Sokobanlike extends Prog {
             }
         }),
         belt(4,
-                GenericInput.ignore.func, GenericInput.push.func,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.attemptConvey.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
@@ -2278,7 +2786,7 @@ public class Sokobanlike extends Prog {
                 g.drawImage(Sprites.beltRight.i, c.c.x(), c.c.y(), 20, 20, null);
         }),
         ice(5,
-                GenericInput.ignore.func, GenericInput.ignore.func,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.ignore.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.slide.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
@@ -2289,7 +2797,7 @@ public class Sokobanlike extends Prog {
                 g.fillRect(c.c.x(), c.c.y(), 20, 20);
         }),
         gate(6,
-                GenericInput.ignore.func, GenericInput.ignore.func,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.ignore.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.ignore.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.check.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
@@ -2340,44 +2848,304 @@ public class Sokobanlike extends Prog {
             }
         }),
         button(7,
-                GenericInput.ignore.func, GenericInput.ignore.func,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.checkHold.func,
                 GenericMove.allow.func, GenericMove.hold.func, GenericMove.allow.func, GenericMove.unhold.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             TypeInfo.ToggleInfo bi = (TypeInfo.ToggleInfo)c.srcType.ti;
             if (c.c == null) {
-                switch (bi.id) {
-                    case 0: g.drawImage(Sprites.button1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                    case 1: g.drawImage(Sprites.button2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                    case 2: g.drawImage(Sprites.button3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                    case 3: g.drawImage(Sprites.button4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                    case 4: g.drawImage(Sprites.button5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                    case 5: g.drawImage(Sprites.button6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                if (bi.on) {
+                    switch (bi.id) {
+                        case 0: g.drawImage(Sprites.buttonDown1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.buttonDown2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.buttonDown3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.buttonDown4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.buttonDown5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.buttonDown6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+                else {
+                    switch (bi.id) {
+                        case 0: g.drawImage(Sprites.button1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.button2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.button3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.button4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.button5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.button6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
                 }
             }
             else {
-                switch (bi.id) {
-                    case 0: g.drawImage(Sprites.button1.i, c.c.x(), c.c.y(), 20, 20, null); break;
-                    case 1: g.drawImage(Sprites.button2.i, c.c.x(), c.c.y(), 20, 20, null); break;
-                    case 2: g.drawImage(Sprites.button3.i, c.c.x(), c.c.y(), 20, 20, null); break;
-                    case 3: g.drawImage(Sprites.button4.i, c.c.x(), c.c.y(), 20, 20, null); break;
-                    case 4: g.drawImage(Sprites.button5.i, c.c.x(), c.c.y(), 20, 20, null); break;
-                    case 5: g.drawImage(Sprites.button6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                if (bi.on) {
+                    switch (bi.id) {
+                        case 0: g.drawImage(Sprites.buttonDown1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.buttonDown2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.buttonDown3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.buttonDown4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.buttonDown5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.buttonDown6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+                else {
+                    switch (bi.id) {
+                        case 0: g.drawImage(Sprites.button1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.button2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.button3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.button4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.button5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.button6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
                 }
             }
         }),
         spikes(8,
-                GenericInput.ignore.func, GenericInput.ignore.func,
-                GenericMove.allow.func, GenericMove.stab.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericInput.ignore.func, GenericHold.holdCheckStab.func, GenericHold.checkStab.func,
+                GenericMove.allow.func, GenericMove.ignore.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
                 g.drawImage(Sprites.spikes.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
             else
                 g.drawImage(Sprites.spikes.i, c.c.x(), c.c.y(), 20, 20, null);
+        }),
+        toggleSpikes(9,
+                GenericInput.ignore.func, GenericHold.holdCheckStab.func, GenericHold.checkStab.func,
+                GenericMove.allow.func, GenericMove.ignore.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            TypeInfo.GateInfo gi = (TypeInfo.GateInfo)c.srcType.ti;
+            if (c.c == null) {
+                if (TypeInfo.GateInfo.states.get(gi.id)==gi.not) {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.spikesUp1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.spikesUp2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.spikesUp3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.spikesUp4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.spikesUp5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.spikesUp6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+                else {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.spikesDown1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.spikesDown2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.spikesDown3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.spikesDown4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.spikesDown5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.spikesDown6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+            }
+            else {
+                if (TypeInfo.GateInfo.states.get(gi.id)==gi.not) {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.spikesUp1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.spikesUp2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.spikesUp3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.spikesUp4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.spikesUp5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.spikesUp6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+                else {
+                    switch (gi.id) {
+                        case 0: g.drawImage(Sprites.spikesDown1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.spikesDown2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.spikesDown3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.spikesDown4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.spikesDown5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.spikesDown6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+            }
+        }),
+        bomb(10,
+                GenericInput.checkBomb.func, GenericHold.tickBomb.func, GenericHold.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.line.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            TypeInfo.BombInfo bi = (TypeInfo.BombInfo) c.srcType.ti;
+            if (c.c == null) {
+                if (bi.isLit)
+                    g.drawImage(Sprites.bombLit.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                else
+                    g.drawImage(Sprites.bomb.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                renderNumbers(c.srcTile.pos.multiply(20).add(5), new Coord(10, 10), bi.countdown, g);
+            }
+            else {
+                if (bi.isLit)
+                    g.drawImage(Sprites.bombLit.i, c.c.x(), c.c.y(), 20, 20, null);
+                else
+                    g.drawImage(Sprites.bomb.i, c.c.x(), c.c.y(), 20, 20, null);
+                renderNumbers(c.c.add(5), new Coord(10, 10), bi.countdown, g);
+            }
+        }),
+        fire(11,
+                GenericInput.ignore.func, GenericHold.checkBurn.func, GenericHold.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            if (c.c == null)
+                g.drawImage(Sprites.fire.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+            else
+                g.drawImage(Sprites.fire.i, c.c.x(), c.c.y(), 20, 20, null);
+        }),
+        eternalFire(12,
+                GenericInput.ignore.func, GenericHold.checkBurn.func, GenericHold.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            if (c.c == null)
+                g.drawImage(Sprites.eternalFire.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+            else
+                g.drawImage(Sprites.eternalFire.i, c.c.x(), c.c.y(), 20, 20, null);
+        }),
+        flag(13,
+                GenericInput.ignore.func, GenericHold.checkFlag.func, GenericHold.ignore.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            TypeInfo.FlagInfo fi = (TypeInfo.FlagInfo) c.srcType.ti;
+            if (c.c == null) {
+                if (fi.isUp)
+                    g.drawImage(Sprites.flag.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                else
+                    g.drawImage(Sprites.flagDown.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+            }
+            else {
+                if (fi.isUp)
+                    g.drawImage(Sprites.flag.i, c.c.x(), c.c.y(), 20, 20, null);
+                else
+                    g.drawImage(Sprites.flagDown.i, c.c.x(), c.c.y(), 20, 20, null);
+            }
+
+        }),
+        paster(14,
+                GenericInput.ignore.func, GenericHold.uncool.func, GenericHold.ignore.func,
+                GenericMove.allow.func, GenericMove.paste.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            if (c.c == null)
+                g.drawImage(Sprites.pasterRight.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+            else
+                g.drawImage(Sprites.pasterRight.i, c.c.x(), c.c.y(), 20, 20, null);
+        }),
+
+        // could be interesting to have unique behaviour if multiple valid targets
+        watcher(15,
+                GenericInput.ignore.func, GenericHold.ignore.func, GenericHold.checkWatch.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+                GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            TypeInfo.WatcherInfo wi = (TypeInfo.WatcherInfo)c.srcType.ti;
+            if (c.c == null) {
+                if (wi.dir.x == 0 && wi.dir.y == 0) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcher1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcher2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcher3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcher4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcher5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcher6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == 1 && wi.dir.y == 0) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherRight1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherRight2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherRight3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherRight4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherRight5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherRight6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == 0 && wi.dir.y == 1) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherDown1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherDown2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherDown3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherDown4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherDown5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherDown6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == -1 && wi.dir.y == 0) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherLeft1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherLeft2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherLeft3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherLeft4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherLeft5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherLeft6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == 0 && wi.dir.y == -1) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherUp1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherUp2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherUp3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherUp4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherUp5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherUp6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                    }
+                }
+            }
+            else {
+                if (wi.dir.x == 0 && wi.dir.y == 0) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcher1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcher2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcher3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcher4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcher5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcher6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == 1 && wi.dir.y == 0) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherRight1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherRight2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherRight3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherRight4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherRight5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherRight6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == 0 && wi.dir.y == 1) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherDown1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherDown2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherDown3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherDown4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherDown5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherDown6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == -1 && wi.dir.y == 0) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherLeft1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherLeft2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherLeft3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherLeft4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherLeft5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherLeft6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+                else if (wi.dir.x == 0 && wi.dir.y == -1) {
+                    switch (wi.id) {
+                        case 0: g.drawImage(Sprites.watcherUp1.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherUp2.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherUp3.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherUp4.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherUp5.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherUp6.i, c.c.x(), c.c.y(), 20, 20, null); break;
+                    }
+                }
+            }
         });
         public Function<InputContext, Boolean> playerInput;
-        public Function<InputContext, Boolean> playerInputEnd;
+        public Function<Context, Boolean> stand;
+        public Function<Context, Boolean> moveResolveCycle;
         public Function<MoveContext, Boolean> pull;
         public Function<MoveContext, Boolean> push;
         public Function<MoveContext, Boolean> pass;
@@ -2389,10 +3157,11 @@ public class Sokobanlike extends Prog {
         public Function<MoveContext, Boolean> interact;
         public BiConsumer<Graphics, RenderContext> render;
         public int id;
-        TileType(int id, Function<InputContext, Boolean> pi, Function<InputContext, Boolean> pie, Function<MoveContext, Boolean> pull, Function<MoveContext, Boolean> push, Function<MoveContext, Boolean> pass, Function<MoveContext, Boolean> exit, Function<MoveContext, Boolean> attPull, Function<MoveContext, Boolean> attPush, Function<MoveContext, Boolean> attpass, Function<MoveContext, Boolean> blocked, Function<MoveContext, Boolean> interact, BiConsumer<Graphics, RenderContext> r) {
+        TileType(int id, Function<InputContext, Boolean> pi, Function<Context, Boolean> s, Function<Context, Boolean> mrc, Function<MoveContext, Boolean> pull, Function<MoveContext, Boolean> push, Function<MoveContext, Boolean> pass, Function<MoveContext, Boolean> exit, Function<MoveContext, Boolean> attPull, Function<MoveContext, Boolean> attPush, Function<MoveContext, Boolean> attpass, Function<MoveContext, Boolean> blocked, Function<MoveContext, Boolean> interact, BiConsumer<Graphics, RenderContext> r) {
             this.id = id;
             playerInput = pi;
-            playerInputEnd = pie;
+            stand = s;
+            moveResolveCycle = mrc;
             this.pull = pull;
             this.push = push;
             this.pass = pass;
@@ -2410,7 +3179,7 @@ public class Sokobanlike extends Prog {
             return null;
         }
         public static TileType[] tileTypes() {
-            return new TileType[]{empty, wall, box, player, belt, ice, gate, button, spikes};
+            return new TileType[]{empty, wall, box, player, belt, ice, gate, button, spikes, toggleSpikes, bomb, fire, eternalFire, flag, paster, watcher};
         }
         public static enum GenericInput {
             follow((InputContext c) -> {
@@ -2436,32 +3205,62 @@ public class Sokobanlike extends Prog {
                     if (toPos.y() < 0 || toPos.y() >= c.curLevel.grid.length) return false;
                     if (toPos.x() < 0 || toPos.x() >= c.curLevel.grid[0].length) return false;
                     if (c.curLevel.grid[toPos.y()][toPos.x()] == null) return false;
-                    GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, c.curLevel.grid[toPos.y()][toPos.x()], null, moveDir, 2, 0));
+                    GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, c.curLevel.grid[toPos.y()][toPos.x()], null, moveDir, 2, 1));
+                    gmr.move.src = "from input";
                     System.out.println(gmr);
                     if (!c.curLevel.grid[toPos.y()][toPos.x()].attemptPush(gmr.move)) return false;
-                    //c.curLevel.grid[toPos.y()][toPos.x()].push(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, moveDir, 2, gmr.connect));
-                    c.srcType.requests.add(gmr);
+                    c.srcType.addRequest(gmr);
                     c.curLevel.addMove(gmr);
                 }
                 return true;
             }),
             listen((InputContext c) -> {return true;}),
             ignore((InputContext c) -> {return false;}),
-            push((InputContext c) -> {
-                Coord toPos = new Coord(c.srcTile.pos);
-                toPos.x += ((TypeInfo.BeltInfo) c.srcType.ti).dir.x;
-                toPos.y += ((TypeInfo.BeltInfo) c.srcType.ti).dir.y;
-                if (toPos.y() < 0 || toPos.y() >= c.curLevel.grid.length) return false;
-                if (toPos.x() < 0 || toPos.x() >= c.curLevel.grid[0].length) return false;
-                if (c.curLevel.grid[toPos.y()][toPos.x()] == null) return false;
-                GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, ((TypeInfo.BeltInfo) c.srcType.ti).dir, 2, -1));
-                if (!c.srcTile.attemptPush(gmr.move)) return false;
-                for (GridModRequest subGmr : gmr.queue) {
-                    c.srcType.requests.add(subGmr);
-                    c.curLevel.addMove(subGmr);
+            checkBomb((InputContext c) -> {
+                TypeInfo.BombInfo bi = (TypeInfo.BombInfo) c.srcType.ti;
+                if (bi.countdown <= 0 && bi.isLit) {
+                    MoveContext mc;
+                    GridModRequest gmr;
+                    if (c.srcTile.pos.x > 0) {
+                        mc = c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, new Coord(-1, 0), 3, 1);
+                        mc.src = "from bomb";
+                        gmr = c.curLevel.getMove(mc);
+                        if (c.curLevel.grid[c.srcTile.pos.y()][c.srcTile.pos.x()-1].attemptPush(mc)) {
+                            for (GridModRequest qgmr : gmr.queue)
+                                c.curLevel.addMove(qgmr);
+                        }
+                    }
+                    if (c.srcTile.pos.x < c.curLevel.grid[0].length-1) {
+                        mc = c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, new Coord(1, 0), 3, 1);
+                        mc.src = "from bomb";
+                        gmr = c.curLevel.getMove(mc);
+                        if (c.curLevel.grid[c.srcTile.pos.y()][c.srcTile.pos.x()+1].attemptPush(mc)) {
+                            for (GridModRequest qgmr : gmr.queue)
+                                c.curLevel.addMove(qgmr);
+                        }
+                    }
+                    if (c.srcTile.pos.y > 0) {
+                        mc = c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, new Coord(0, -1), 3, 1);
+                        mc.src = "from bomb";
+                        gmr = c.curLevel.getMove(mc);
+                        if (c.curLevel.grid[c.srcTile.pos.y()-1][c.srcTile.pos.x()].attemptPush(mc)) {
+                            for (GridModRequest qgmr : gmr.queue)
+                                c.curLevel.addMove(qgmr);
+                        }
+                    }
+                    if (c.srcTile.pos.y < c.curLevel.grid.length-1) {
+                        mc = c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, new Coord(0, 1), 3, 1);
+                        mc.src = "from bomb";
+                        gmr = c.curLevel.getMove(mc);
+                        if (c.curLevel.grid[c.srcTile.pos.y()+1][c.srcTile.pos.x()].attemptPush(mc)) {
+                            for (GridModRequest qgmr : gmr.queue)
+                                c.curLevel.addMove(qgmr);
+                        }
+                    }
+                    c.curLevel.removeQueue.add(c.newContext(c.curLevel, c.srcTile, c.srcType));
+                    return true;
                 }
-                //c.srcTile.push(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, ((TypeInfo.BeltInfo) c.srcType.ti).dir, 2));
-                return true;
+                return false;
             });
             public Function<InputContext, Boolean> func;
             GenericInput(Function<InputContext, Boolean> f) { func = f; }
@@ -2476,62 +3275,117 @@ public class Sokobanlike extends Prog {
                 return false;
             }),
             line((MoveContext c) -> {
+                if (c.max == -1) return false;
+                if (c.type.ti instanceof TypeInfo.BombInfo bi) {
+                    if (bi.countdown <= 0 && bi.isLit) return false;
+                }
                 if (c.tile.pos.y() + c.dir.y() < 0 || c.tile.pos.y() + c.dir.y() >= c.curLevel.grid.length) return false;
                 if (c.tile.pos.x() + c.dir.x() < 0 || c.tile.pos.x() + c.dir.x() >= c.curLevel.grid[0].length) return false;
                 if (c.curLevel.grid[c.tile.pos.y() + c.dir.y()][c.tile.pos.x() + c.dir.x()] == null) return false;
                 if (c.max-1 == -1) return false;
-                System.out.println("Pushing with " + c);
                 GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.tile, c.type, null, null, c.dir, c.max-1, c.depth+1));
-                c.srcType.requests.add(gmr);
-                c.request.queue.add(gmr);
-                System.out.println("Context: " + gmr.move);
-                System.out.println("Checking Downstream\n");
+                gmr.priority = c.request.priority;
+                gmr.move.src = "push " + c.src;
+                gmr.src = c;
                 if (!c.curLevel.grid[c.tile.pos.y() + c.dir.y()][c.tile.pos.x() + c.dir.x()].attemptPush(gmr.move)) return false;
-                System.out.println("Push Succeeded\n");
+                c.srcType.ti.hasPushed = true;
+                c.type.addRequest(gmr);
+                c.request.queue.add(gmr);
                 return true;
             }),
             ignore((MoveContext c) -> {return false;}),
             slide((MoveContext c) -> {
-                System.out.println("Sliding with " + c);
+                if (c.max == -1) return false;
+                /*
+                check and return if has pushed
+                */
                 Coord toPos = c.tile.pos.add(c.dir);
                 if (toPos.y() < 0 || toPos.y() >= c.curLevel.grid.length) return true;
                 if (toPos.x() < 0 || toPos.x() >= c.curLevel.grid[0].length) return true;
                 if (c.curLevel.grid[toPos.y()][toPos.x()] == null) return true;
-                MoveContext move = c.newMoveContext(c.curLevel, c.tile, c.srcType, c.curLevel.grid[toPos.y()][toPos.x()], c.srcType, c.dir, c.max, 0);
+                MoveContext move;
+                if (c.srcType.ti.hasPushed)
+                    move = c.newMoveContext(c.curLevel, c.tile, c.srcType, c.curLevel.grid[toPos.y()][toPos.x()], null, c.dir, 0, 1);
+                else
+                    move = c.newMoveContext(c.curLevel, c.tile, c.srcType, c.curLevel.grid[toPos.y()][toPos.x()], c.srcType, c.dir, 1, 1);
+                move.src = "from slide " + c.srcType;
                 GridModRequest gmr = c.curLevel.getMove(move);
-                //c.request.cascade = GenericMove.line.func;
+                gmr.priority = -1;
                 c.request.cascadeContext = move;
-                System.out.println("Context: " + move);
-                System.out.println("Sliding Successful\n");
-                //if (!c.curLevel.grid[toPos.y()][toPos.x()].attemptPush(c.newMoveContext(c.curLevel, c.tile, c.type, null, null, c.dir, c.max, gmr.connect))) return false;
-                //c.curLevel.grid[toPos.y()][toPos.x()].push(c.newMoveContext(c.curLevel, c.tile, c.srcType, null, null, c.dir, c.max, gmr.connect));
-                //else return false;
                 return true;
             }),
             block((MoveContext c) -> {return false;}),
             hold((MoveContext c) -> {
+                if (c.max == -1) return false;
                 System.out.println("Check Hold\n");
                 if (c.type.ti instanceof TypeInfo.ToggleInfo ti) {
+                    if (ti.on) return true;
                     System.out.println("Hold Button\n");
+                    ti.on = true;
                     TypeInfo.GateInfo.states.put(ti.id, true);
                     TypeInfo.ToggleInfo.helds.put(ti.id, TypeInfo.ToggleInfo.helds.get(ti.id)+1);
                 }
+                checkToggles();
                 return true; }),
             unhold((MoveContext c) -> {
+                if (c.max == -1) return false;
                 System.out.println("Check Unhold\n");
                 if (c.type.ti instanceof TypeInfo.ToggleInfo ti) {
+                    if (!ti.on) return false;
                     System.out.println("Off Button\n");
+                    ti.on = false;
                     if (TypeInfo.ToggleInfo.helds.get(ti.id) <= 1) {
                         TypeInfo.GateInfo.states.put(ti.id, false);
                     }
                     TypeInfo.ToggleInfo.helds.put(ti.id, TypeInfo.ToggleInfo.helds.get(ti.id)-1);
                 }
+                checkToggles();
                 return false;}),
             stab((MoveContext c) -> {
+                if (c.max == -1) return false;
                 if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
                     c.curLevel.gameOver = true;
                     pi.sleepy = true;
                     TypeInfo.PlayerInfo.awake--;
+                }
+                return true;
+            }),
+            checkStab((MoveContext c) -> {
+                if (c.max == -1) return false;
+                if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
+                    if (c.type.ti instanceof TypeInfo.GateInfo gi) {
+                        System.out.println(c.tile + ", on = " + TypeInfo.GateInfo.states.get(gi.id));
+                        if (TypeInfo.GateInfo.states.get(gi.id) == gi.not) {
+                            pi.sleepy = true;
+                            TypeInfo.PlayerInfo.awake--;
+                            if (TypeInfo.PlayerInfo.awake <= 0)
+                                c.curLevel.gameOver = true;
+                        }
+                    }
+                    else {
+                        pi.sleepy = true;
+                        TypeInfo.PlayerInfo.awake--;
+                        if (TypeInfo.PlayerInfo.awake <= 0)
+                            c.curLevel.gameOver = true;
+                    }
+                }
+                return true;
+            }),
+            paste((MoveContext c) -> {
+                if (c.max == -1) return false;
+                TypeInfo.PasteInfo pi = (TypeInfo.PasteInfo) c.type.ti;
+                if (pi.onCool) return false;
+                if (c.tile.pos.x+1 < c.curLevel.grid[0].length) {
+                    //ArrayList<TypeInst> types = c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1].types;
+                    for (TypeInst ti : c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1].types.reversed()) {
+                        if (ti.tt != empty) {
+                            //this.id = id;
+                            ti.tt = c.srcType.tt;
+                            ti.ti = c.srcType.ti;
+                            pi.onCool = true;
+                            break;
+                        }
+                    }
                 }
                 return true;
             });
@@ -2540,14 +3394,228 @@ public class Sokobanlike extends Prog {
         }
         public static enum GenericHold {
             listen((Context c) -> {return true;}),
-            ignore((Context c) -> {return false;});
+            ignore((Context c) -> {return false;}),
+            checkStab((Context c) -> {
+                if (c.curLevel.moveResolveEmpty) return false;
+                if (c.srcType.ti instanceof TypeInfo.GateInfo gi) {
+                    if (TypeInfo.GateInfo.states.get(gi.id) != gi.not) return false;
+                }
+                for (TypeInst ti : c.srcTile.types.reversed()) {
+                    if (ti == c.srcType) break;
+                    // nothing else gets stab checked, so this is faster for now
+                    if (ti.tt == TileType.player) {
+                        for (GridModRequest gmr : c.curLevel.moveQueue) {
+                            if (gmr.move.srcType == ti) {
+                                if (!((TypeInfo.PlayerInfo) ti.ti).sleepy) {
+                                    ((TypeInfo.PlayerInfo) ti.ti).sleepy = true;
+                                    TypeInfo.PlayerInfo.awake--;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    /*for (GridModRequest gmr : c.curLevel.moveQueue) {
+                        if (gmr.move.srcType == ti) {
+                            if (ti.tt == TileType.player) {
+                                if (!((TypeInfo.PlayerInfo) ti.ti).sleepy) {
+                                    ((TypeInfo.PlayerInfo) ti.ti).sleepy = true;
+                                    TypeInfo.PlayerInfo.awake--;
+                                }
+                            }
+                            break;
+                        }
+                    }*/
+                }
+                return true;
+            }),
+            holdCheckStab((Context c) -> {
+                if (c.curLevel.settingUp) return false;
+                if (c.srcType.ti instanceof TypeInfo.GateInfo gi) {
+                    if (TypeInfo.GateInfo.states.get(gi.id) != gi.not) return false;
+                }
+                for (TypeInst ti : c.srcTile.types) {
+                    if (ti.tt == TileType.player) {
+                        if (! ((TypeInfo.PlayerInfo)ti.ti).sleepy) {
+                            ((TypeInfo.PlayerInfo) ti.ti).sleepy = true;
+                            TypeInfo.PlayerInfo.awake--;
+                        }
+                    }
+                }
+                return true;
+            }),
+            checkBurn((Context c) -> {
+                boolean doRemove = c.srcType.tt == TileType.fire;
+                for (TypeInst ti : c.srcTile.types) {
+                    if (ti.ti instanceof TypeInfo.PlayerInfo pi) {
+                        if (!pi.sleepy)
+                            TypeInfo.PlayerInfo.awake--;
+                        pi.sleepy = true;
+                        if (doRemove) { doRemove = false; c.curLevel.removeQueue.add(c.newContext(c.curLevel, c.srcTile, c.srcType)); }
+                    } else if (ti.ti instanceof TypeInfo.BombInfo bi) {
+                        if (!bi.isLit) bi.countdown++;
+                        bi.isLit = true;
+                        if (doRemove) { doRemove = false; c.curLevel.removeQueue.add(c.newContext(c.curLevel, c.srcTile, c.srcType)); }
+                    }
+                }
+                return false;
+            }),
+            tickBomb((Context c) -> {
+                TypeInfo.BombInfo bi = (TypeInfo.BombInfo) c.srcType.ti;
+                if (bi.isLit) {
+                    bi.countdown--;
+                }
+                return false;
+            }),
+            checkFlag((Context c) -> {
+                TypeInfo.FlagInfo fi = (TypeInfo.FlagInfo) c.srcType.ti;
+                boolean wasUp = fi.isUp;
+                fi.isUp = false;
+                for (TypeInst ti : c.srcTile.types) {
+                    if (ti.tt == TileType.player) {
+                        fi.isUp = true;
+                    }
+                }
+                if (fi.isUp && !wasUp) {
+                    TypeInfo.FlagInfo.numUp++;
+                    if (TypeInfo.FlagInfo.numUp == 1) {
+                        c.curLevel.winGame();
+                    }
+                }
+                else if (!fi.isUp && wasUp)
+                    TypeInfo.FlagInfo.numUp--;
+                return true;
+            }),
+            uncool((Context c) -> {
+                if (c.srcType.ti instanceof TypeInfo.PasteInfo pi) {
+                    pi.onCool = false;
+                }
+                return true;
+            }),
+            attemptConvey((Context c) -> {
+                if (c.curLevel.settingUp) return false;
+                System.out.println("Do convey: " + c.curLevel.moveResolveEmpty);
+                Coord toPos = new Coord(c.srcTile.pos);
+                toPos.x += ((TypeInfo.BeltInfo) c.srcType.ti).dir.x;
+                toPos.y += ((TypeInfo.BeltInfo) c.srcType.ti).dir.y;
+                if (toPos.y() < 0 || toPos.y() >= c.curLevel.grid.length) return false;
+                if (toPos.x() < 0 || toPos.x() >= c.curLevel.grid[0].length) return false;
+                if (c.curLevel.grid[toPos.y()][toPos.x()] == null) return false;
+                for (TypeInst ti : c.curLevel.grid[c.srcTile.pos.y()][c.srcTile.pos.x()].types.reversed()) {
+                    if (ti.tt == belt) break;
+                    for (GridModRequest gmr : ti.requests) {
+                        if (gmr.priority == -1 && gmr.move.depth == 1) { return false; }
+                    }
+                    if (!TypeInfo.BeltInfo.moved.contains(ti)) {
+                        System.out.println("Push thingy: "+ti.tt);
+                        TypeInfo.BeltInfo.moved.add(ti);
+                        GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, c.srcTile, ti, ((TypeInfo.BeltInfo) c.srcType.ti).dir, 2, -1));
+                        gmr.move.src = "from belt";
+                        if (!ti.tt.attemptPush.apply(gmr.move)) return false;
+                        for (GridModRequest subGmr : gmr.queue) {
+                            c.srcType.addRequest(subGmr);
+                            c.curLevel.addMove(subGmr);
+                        }
+                    }
+                }
+                return true;
+            }),
+            checkHold((Context c) -> {
+                if (!c.curLevel.settingUp) return false;
+                for (TypeInst ti : c.curLevel.grid[c.srcTile.pos.y()][c.srcTile.pos.x()].types.reversed()) {
+                    if (ti.tt == button) break;
+                    else {
+                        TypeInfo.ToggleInfo tgi = (TypeInfo.ToggleInfo) c.srcType.ti;
+                        TypeInfo.ToggleInfo.helds.put(tgi.id, TypeInfo.ToggleInfo.helds.get(tgi.id)+1);
+                        TypeInfo.GateInfo.states.put(tgi.id, true);
+                    }
+                }
+                checkToggles();
+                return true;
+            }),
+            checkWatch((Context c) -> {
+                TypeInfo.WatcherInfo wi = (TypeInfo.WatcherInfo) c.srcType.ti;
+                boolean wasActive = wi.on;
+                wi.gaze.clear();
+                if (c.srcTile.types.getLast().tt == TileType.player) {
+                    wi.on = true;
+                    wi.dir.x = 0;
+                    wi.dir.y = 0;
+                    wi.gaze.add(c.srcTile.pos);
+                }
+                else {
+                    int[] closests = new int[4];
+                    Coord checkPos;
+                    Coord dir;
+                    MoveContext lookMove;
+                    for (int x = 0; x < 4; x++) {
+                        checkPos = c.srcTile.pos;
+                        dir = switch (x) {
+                            case 0 -> new Coord(0, 1);
+                            case 1 -> new Coord(0, -1);
+                            case 2 -> new Coord(1, 0);
+                            case 3 -> new Coord(-1, 0);
+                            default -> new Coord();
+                        };
+                        lookMove = c.newMoveContext(c.curLevel, c.srcTile, c.srcType, null, null, dir, -1, -1);
+                        while (true) {
+                            if (!c.curLevel.onBoard(checkPos)) {
+                                closests[x] = -1;
+                                break;
+                            }
+                            if (c.curLevel.grid[checkPos.y()][checkPos.x()].types.getLast().tt == TileType.player) break;
+                            if (!c.curLevel.grid[checkPos.y()][checkPos.x()].attemptPush(lookMove)) {
+                                closests[x] = -1;
+                                break;
+                            }
+                            closests[x]++;
+                            checkPos = checkPos.add(dir);
+                        }
+                    }
+                    int best = -1;
+                    for (int x = 0; x < 4; x++) {
+                        if (closests[x] != -1) {
+                            if (best == -1) best = x;
+                            else if (closests[x] < closests[best]) best = x;
+                        }
+                    }
+                    if (best == -1)
+                        wi.on = false;
+                    else {
+                        wi.on = true;
+                        dir = switch (best) {
+                            case 0 -> new Coord(0, 1);
+                            case 1 -> new Coord(0, -1);
+                            case 2 -> new Coord(1, 0);
+                            case 3 -> new Coord(-1, 0);
+                            default -> new Coord();
+                        };
+                        wi.dir.copy(dir);
+                        checkPos = c.srcTile.pos;
+                        for (int x = 0; x <= closests[best]; x++) {
+                            wi.gaze.add(checkPos);
+                            checkPos = checkPos.add(dir);
+                        }
+                    }
+                }
+                if (wi.on && !wasActive) {
+                    TypeInfo.ToggleInfo.helds.put(wi.id, TypeInfo.ToggleInfo.helds.get(wi.id)+1);
+                }
+                if (!wi.on && wasActive) {
+                    TypeInfo.ToggleInfo.helds.put(wi.id, TypeInfo.ToggleInfo.helds.get(wi.id)-1);
+                }
+                checkToggles();
+                return true;
+            });
             public Function<Context, Boolean> func;
             GenericHold(Function<Context, Boolean> f) { func = f; }
         }
-        /*public static enum GenericRender {
-            square(),
+    }
 
-        }*/
+    public static void checkToggles() {
+        for (int x = 0; x < 6; x++) {
+            if (TypeInfo.ToggleInfo.helds.get(x) != null)
+                TypeInfo.GateInfo.states.put(x, TypeInfo.ToggleInfo.helds.get(x) > 0);
+        }
     }
 
     public enum Input {
@@ -2557,7 +3625,8 @@ public class Sokobanlike extends Prog {
         right(KeyEvent.VK_D),
         wait(KeyEvent.VK_SPACE),
         esc(KeyEvent.VK_ESCAPE),
-        debug(KeyEvent.VK_SHIFT);
+        debug(KeyEvent.VK_SHIFT),
+        undo(KeyEvent.VK_Z);
         public int key;
         Input(int k) {
             key = k;
@@ -2610,29 +3679,46 @@ public class Sokobanlike extends Prog {
         public TypeInst type;
         public int max;
         public GridModRequest request;
+
+        public String src = "";
+
         public MoveContext(Level l, Tile t, TypeInst tt, Tile fromTile, TypeInst toMove, Coord d, int maxD, int depth) { super(l, t, tt); /*if (srcT != null) System.out.println("attempt move at " + srcT.pos);*/ dir = d; tile = fromTile; type = toMove; max = maxD; this.depth = depth; }
         public MoveContext(Level l, Tile t, TypeInst tt, Tile fromTile, TypeInst toMove, Coord d, int maxD, int depth, GridModRequest gmr) { super(l, t, tt); /*if (srcT != null) System.out.println("attempt move at " + srcT.pos);*/ dir = d; tile = fromTile; type = toMove; max = maxD; this.depth = depth; request = gmr; }
 
         @Override
         public String toString() {
-            return super.toString() + " moving " + (type == null ? "NULL type" : type.tt) + " on " + (tile == null ? "NULL tile" : tile.pos) + " by " + dir;
+            return super.toString() + " moving " + (type == null ? "NULL type" : type.tt) + " on " + (tile == null ? "NULL tile" : tile.pos) + " by " + dir + "at depth " + depth + " " + src;
         }
     }
     public class TypeInst {
-
+        // Coord tpos = new Coord(); // could solve the problem of type removal not tracking moving types
         public ArrayList<GridModRequest> requests = new ArrayList<GridModRequest>();
         public TypeInfo ti;
         public TileType tt;
         public TypeInst(TileType tt) { this.tt = tt; ti = new TypeInfo(); }
         public TypeInst(TileType tt, TypeInfo ti) { this.tt = tt; this.ti = ti; }
+
+        public void addRequest(GridModRequest gmr) {
+            System.out.println("Adding request to " + this + " " + gmr.move.src);
+            requests.add(gmr);
+        }
+
+        public String toString() {
+            return tt+" ("+super.toString().substring(super.toString().indexOf("@"))+")";
+        }
     }
     public static class TypeInfo {
         public boolean isMoving = false;
+        public boolean hasPushed = false;
 
         public static class PlayerInfo extends TypeInfo {
             public Coord dir;
             public boolean sleepy = false;
             public static int awake = 0;
+
+            /*
+            Might need a contingency tracker for cases where player immediately steps on a toggleable spike.
+            */
 
             public PlayerInfo() {
                 awake++;
@@ -2645,20 +3731,12 @@ public class Sokobanlike extends Prog {
             }
 
             @Override
-            public void nudge(int i, int x) {
-                System.out.println("nudge");
-                switch (i) {
-                    case 0:
-                        dir.turn90(x);
-                        break;
-                    default:
-                        System.out.println("N/A");
-                        break;
-                }
-            }
+            public void nudge(int i) { sleepy = !sleepy; }
+            @Override
+            public void antinudge(int i) { nudge(); }
         }
-
         public static class BeltInfo extends TypeInfo {
+            public static HashSet<TypeInst> moved = new HashSet<TypeInst>();
             public Coord dir;
 
             public BeltInfo() {
@@ -2670,16 +3748,13 @@ public class Sokobanlike extends Prog {
             }
 
             @Override
-            public void nudge(int i, int x) {
-                System.out.println("nudge");
-                switch (i) {
-                    case 0:
-                        dir.turn90(x);
-                        break;
-                    default:
-                        System.out.println("N/A");
-                        break;
-                }
+            public void nudge(int i) {
+                dir.turn90(1);
+            }
+
+            @Override
+            public void antinudge(int i) {
+                dir.turn90(3);
             }
         }
         public static class GateInfo extends TypeInfo {
@@ -2699,16 +3774,37 @@ public class Sokobanlike extends Prog {
             }
 
             @Override
-            public void nudge() {
-                id++;
-                id %= 6;
-                if (id==0) not=!not;
-                states.put(id, false);
+            public void nudge(int i) {
+                switch (i) {
+                    case 1:
+                        not = !not;
+                        break;
+                    default:
+                        id++;
+                        id %= 6;
+                        states.put(id, false);
+                        break;
+                }
+            }
+
+            @Override
+            public void antinudge(int i) {
+                switch (i) {
+                    case 1:
+                        not = !not;
+                        break;
+                    default:
+                        id--;
+                        id = (id+6) % 6;
+                        states.put(id, false);
+                        break;
+                }
             }
         }
         public static class ToggleInfo extends TypeInfo {
             public static TreeMap<Integer, Integer> helds = new TreeMap<Integer, Integer>();
             public Integer id;
+            public boolean on = false;
 
             public ToggleInfo() {
                 id = 0;
@@ -2723,15 +3819,121 @@ public class Sokobanlike extends Prog {
             }
 
             @Override
-            public void nudge() {
+            public void nudge(int i) {
                 id++;
                 id %= 6;
                 GateInfo.states.put(id, false);
                 helds.put(id, 0);
             }
+
+            @Override
+            public void antinudge(int i) {
+                id--;
+                id = (id+6) % 6;
+                GateInfo.states.put(id, false);
+                helds.put(id, 0);
+            }
+        }
+        public static class BombInfo extends TypeInfo {
+            public int countdown;
+            public boolean isLit;
+            public BombInfo() {
+                countdown = 0;
+                isLit = false;
+            }
+            public BombInfo(int c, boolean l) {
+                countdown = c;
+                isLit = l;
+            }
+
+            @Override
+            public void nudge(int i) {
+                countdown++;
+            }
+
+            @Override
+            public void antinudge(int i) {
+                countdown--;
+            }
+        }
+        public static class FlagInfo extends TypeInfo {
+            public boolean isUp;
+            public static int numUp = 0;
+            public FlagInfo() {
+                isUp = false;
+            }
+            public FlagInfo(boolean u) {
+                isUp = u;
+                if (isUp) numUp++;
+                //else numUp--;
+            }
+
+            @Override
+            public void nudge(int i) {
+                if (isUp) numUp--;
+                else numUp++;
+                isUp = !isUp;
+            }
+            @Override
+            public void antinudge(int i) { nudge(); }
+        }
+        public static class PasteInfo extends TypeInfo {
+            public boolean onCool = false;
+            public PasteInfo() { onCool = false; }
+        }
+        public static class WatcherInfo extends ToggleInfo {
+            public Coord dir;
+            public ArrayList<Coord> gaze = new ArrayList<Coord>();
+
+            WatcherInfo() { super(); dir = new Coord(); GateInfo.states.put(0, false); ToggleInfo.helds.put(id, 0); }
+            WatcherInfo(int i, Coord d) { super(i); dir = d; }
+
+            @Override
+            public void nudge(int i) {
+                switch (i) {
+                    case 1:
+                        if (dir.x == 0 && dir.y == 0)
+                            dir.x = 1;
+                        else {
+                            if (dir.x == 0 && dir.y == -1)
+                                dir.y = 0;
+                            else
+                                dir.turn90(1);
+                        }
+                        break;
+                    default:
+                        id++;
+                        id %= 6;
+                        GateInfo.states.put(id, false);
+                        ToggleInfo.helds.put(id, 0);
+                        break;
+                }
+            }
+
+            @Override
+            public void antinudge(int i) {
+                switch (i) {
+                    case 1:
+                        if (dir.x == 0 && dir.y == 0)
+                            dir.y = -1;
+                        else {
+                            if (dir.x == 1 && dir.y == 0)
+                                dir.x = 0;
+                            else
+                                dir.turn90(3);
+                        }
+                        break;
+                    default:
+                        id--;
+                        id = (id+6) % 6;
+                        GateInfo.states.put(id, false);
+                        ToggleInfo.helds.put(id, 0);
+                        break;
+                }
+            }
         }
 
-        public void nudge(int i, int x) {
+        public void nudge(int i) {
             System.out.println("nudged");
         }
 
@@ -2739,24 +3941,34 @@ public class Sokobanlike extends Prog {
             System.out.println("nudged");
         }
 
+        public void antinudge(int i) {
+            System.out.println("anti-nudged");
+        }
+
+        public void antinudge() {
+            System.out.println("anti-nudged");
+        }
+
         public static TypeInfo infoOfType(TileType tt) {
             if (tt == TileType.belt) return new BeltInfo();
             if (tt == TileType.player) return new PlayerInfo();
-            if (tt == TileType.gate) return new GateInfo();
+            if (tt == TileType.gate || tt == TileType.toggleSpikes) return new GateInfo();
             if (tt == TileType.button) return new ToggleInfo();
+            if (tt == TileType.bomb) return new BombInfo();
+            if (tt == TileType.flag) return new FlagInfo();
+            if (tt == TileType.paster) return new PasteInfo();
+            if (tt == TileType.watcher) return new WatcherInfo();
             return new TypeInfo();
         }
 
         public static TypeInfo infoFromString(TileType tt, String s) {
             s += "|";
-            //System.out.println(s);
             try {
                 if (tt == TileType.belt) {
                     Coord dir = new Coord(-1, 0);
                     while (s.contains("|")) {
                         if (s.charAt(0) == 'c') {
                             dir = new Coord(Integer.parseInt(s.substring(1, s.indexOf(":"))), Integer.parseInt(s.substring(s.indexOf(":")+1, s.indexOf("|"))));
-                            //System.out.println("dir is " + dir);
                         }
                         else {
                             throw new InfoFormattingException(tt);
@@ -2770,7 +3982,6 @@ public class Sokobanlike extends Prog {
                     while (s.contains("|")) {
                         if (s.charAt(0) == 'c') {
                             dir = new Coord(Integer.parseInt(s.substring(1, s.indexOf(":"))), Integer.parseInt(s.substring(s.indexOf(":")+1, s.indexOf("|"))));
-                            //System.out.println("dir is " + dir);
                         }
                         else {
                             throw new InfoFormattingException(tt);
@@ -2779,7 +3990,7 @@ public class Sokobanlike extends Prog {
                     }
                     return new PlayerInfo(dir);
                 }
-                if (tt == TileType.gate) {
+                if (tt == TileType.gate || tt == TileType.toggleSpikes) {
                     int id = 0;
                     boolean not = false;
                     while (s.contains("|")) {
@@ -2806,6 +4017,51 @@ public class Sokobanlike extends Prog {
                     }
                     return new ToggleInfo(id);
                 }
+                if (tt == TileType.bomb) {
+                    int c = 0;
+                    boolean lit = false;
+                    while (s.contains("|")) {
+                        if (s.charAt(0) == 'i') {
+                            c = Integer.parseInt(s.substring(1, s.indexOf("|")));
+                        } else if (s.charAt(0) == 'b') {
+                            lit = Integer.parseInt(s.substring(1, s.indexOf("|"))) != 0;
+                        } else {
+                            throw new InfoFormattingException(tt);
+                        }
+                        s = s.substring(s.indexOf("|")+1);
+                    }
+                    return new BombInfo(c, lit);
+                }
+                if (tt == TileType.flag) {
+                    boolean up = false;
+                    while (s.contains("|")) {
+                        if (s.charAt(0) == 'b') {
+                            up = Integer.parseInt(s.substring(1, s.indexOf("|"))) != 0;
+                        } else {
+                            throw new InfoFormattingException(tt);
+                        }
+                        s = s.substring(s.indexOf("|")+1);
+                    }
+                    return new FlagInfo(up);
+                }
+                if (tt == TileType.paster) {
+                    return new PasteInfo();
+                }
+                if (tt == TileType.watcher) {
+                    int id = 0;
+                    Coord dir = new Coord(0, 0);
+                    while (s.contains("|")) {
+                        if (s.charAt(0) == 'i') {
+                            id = Integer.parseInt(s.substring(1, s.indexOf("|")));
+                        } else if (s.charAt(0) == 'c') {
+                            dir = new Coord(Integer.parseInt(s.substring(1, s.indexOf(":"))), Integer.parseInt(s.substring(s.indexOf(":")+1, s.indexOf("|"))));
+                        } else {
+                            throw new InfoFormattingException(tt);
+                        }
+                        s = s.substring(s.indexOf("|")+1);
+                    }
+                    return new WatcherInfo(id, dir);
+                }
                 else return new TypeInfo();
             } catch (Exception e) {
                 System.out.println(e.getMessage());
@@ -2828,6 +4084,12 @@ public class Sokobanlike extends Prog {
             else if (ti instanceof ToggleInfo tgi) {
                 ret = "|i"+tgi.id;
             }
+            else if (ti instanceof BombInfo bi) {
+                ret = "|i"+bi.countdown+"|b"+(bi.isLit?1:0);
+            }
+            else if (ti instanceof FlagInfo fi) {
+                ret = "|b"+(fi.isUp?1:0);
+            }
             return ret;
         }
 
@@ -2843,6 +4105,31 @@ public class Sokobanlike extends Prog {
             public InfoFormattingException(TileType tt, Exception src) {
                 super("Invalid Tile Info Formatting for " + tt);
             }
+        }
+    }
+
+    public static void renderNumbers(Coord pos, Coord bounds, int num, Graphics g) {
+        boolean neg = num < 0;
+        int digits = (""+num).length();
+        num = Math.abs(num);
+        for (int x = digits-1; x >= 0; x--) {
+            if (x == 0 && neg) {
+                g.drawImage(Sprites.negative.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null);
+                break;
+            }
+            switch (num%10) {
+                case 0: g.drawImage(Sprites.zero.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 1: g.drawImage(Sprites.one.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 2: g.drawImage(Sprites.two.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 3: g.drawImage(Sprites.three.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 4: g.drawImage(Sprites.four.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 5: g.drawImage(Sprites.five.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 6: g.drawImage(Sprites.six.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 7: g.drawImage(Sprites.seven.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 8: g.drawImage(Sprites.eight.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+                case 9: g.drawImage(Sprites.nine.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
+            }
+            num /= 10;
         }
     }
 }

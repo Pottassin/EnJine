@@ -11,14 +11,14 @@ import java.util.ArrayList;
 //import javax.swing.LookAndFeel;
 //import javax.swing.plaf.basic.BasicLookAndFeel;
 import java.lang.Thread;
+import java.util.function.Consumer;
 
 import enjine.util.*;
-import enjine.GeoMath.*;
+import enjine.geoMath.*;
     
 // look at Area class
 
-// add scenes / some type of grouping
-
+// a 'sequence' object to perform a series of functions based of frames / timing would be nice
 public class Prog {
 
     public static Random randomIntGen;
@@ -477,6 +477,92 @@ public class Prog {
 
     public class Group extends Script {
         public HashSet<Script> items = new HashSet<Script>();
+    }
+
+    public class TextField extends Script {
+        public String field = "";
+        public Consumer<String> notify;
+        public TextField() { sim = false; }
+        public void start() {
+            System.out.println("open field");
+            field = "";
+            sim = true;
+            //CameraManager.addToDraw(this, 1);
+            KeyDetect.instance.addP(this);
+        }
+
+        public void destroy() {
+            sim = false;
+            //CameraManager.removeToDraw(this, 1);
+            KeyDetect.instance.removeP(this);
+        }
+
+        public void keyPressed(int e) {
+            if (e == KeyEvent.VK_BACK_SPACE) {
+                if (field.length() > 0)
+                    field = field.substring(0, field.length()-1);
+                System.out.println(field);
+            }
+            else if (e == KeyEvent.VK_ESCAPE) {
+                destroy();
+                System.out.println("closing field");
+            }
+            else if (e == KeyEvent.VK_ENTER) {
+                notify.accept(field);
+            }
+            else {
+                if (KeyEvent.getKeyText(e).length() > 1) return;
+                if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_SHIFT)) {
+                    System.out.println("adding "+(char) e);
+                    field += (char) e;
+                    System.out.println(field);
+                    return;
+                }
+                System.out.println("adding "+(""+(char) e).toLowerCase());
+                field += (""+(char) e).toLowerCase();
+                System.out.println(field);
+            }
+        }
+    }
+
+    public class NumberField extends Script {
+        public int field = 0;
+        public Consumer<Integer> notify;
+        public NumberField() { sim = false; }
+        public void start() {
+            System.out.println("open field");
+            field = 0;
+            sim = true;
+            //CameraManager.addToDraw(this, 1);
+            KeyDetect.instance.addP(this);
+        }
+
+        public void destroy() {
+            sim = false;
+            //CameraManager.removeToDraw(this, 1);
+            KeyDetect.instance.removeP(this);
+        }
+
+        public void keyPressed(int e) {
+            if (e == KeyEvent.VK_BACK_SPACE) {
+                if (field>=10)
+                    field /= 10;
+                System.out.println(field);
+            }
+            else if (e == KeyEvent.VK_ESCAPE) {
+                destroy();
+                System.out.println("closing field");
+            }
+            else if (e == KeyEvent.VK_ENTER) {
+                notify.accept(field);
+            }
+            else {
+                if (e < 48 || e > 57) return;
+                System.out.println("adding "+(e-48));
+                field = field*10 + (e-48);
+                System.out.println(field);
+            }
+        }
     }
 
     //public class PhysicsBody {}

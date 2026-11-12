@@ -1,4 +1,4 @@
-package enjine.GeoMath;
+package enjine.geoMath;
 
 import java.util.ArrayList;
 

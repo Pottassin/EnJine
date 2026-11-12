@@ -4,8 +4,7 @@ import java.util.HashSet;
 import java.util.ArrayList;
 import java.lang.Math;
 
-import enjine.GeoMath.*;
-import enjine.util.*;
+import enjine.geoMath.*;
 import enjine.Prog;
 
 public class BallBoingler extends Prog {

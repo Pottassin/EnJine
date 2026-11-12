@@ -1,4 +1,4 @@
-package enjine.GeoMath;
+package enjine.geoMath;
 
 public class RectCollider extends Collider {
     public Coord og;

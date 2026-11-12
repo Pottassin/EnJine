@@ -1,4 +1,4 @@
-package enjine.GeoMath;
+package enjine.geoMath;
 
 import java.awt.*;
 import java.util.function.Consumer;

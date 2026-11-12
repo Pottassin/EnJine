@@ -1,6 +1,5 @@
 import enjine.Prog;
-import enjine.util.*;
-import enjine.GeoMath.*;
+import enjine.geoMath.*;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;

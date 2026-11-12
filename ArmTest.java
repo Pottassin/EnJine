@@ -3,8 +3,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 
-import enjine.GeoMath.*;
-import enjine.util.*;
+import enjine.geoMath.*;
 import enjine.Prog;
 
 public class ArmTest extends Prog {

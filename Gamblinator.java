@@ -5,8 +5,7 @@ import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.function.Function;
 
-import enjine.GeoMath.*;
-import enjine.util.*;
+import enjine.geoMath.*;
 import enjine.Prog;
 
 public class Gamblinator extends Prog {

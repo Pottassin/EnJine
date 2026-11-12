@@ -4,8 +4,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.lang.Math;
 
-import enjine.GeoMath.*;
-import enjine.util.*;
 import enjine.Prog;
 
 public class Pong extends Prog {

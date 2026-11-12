@@ -7,8 +7,7 @@ import java.util.function.*;
 import java.lang.Math;
 import java.awt.Polygon;
 
-import enjine.GeoMath.*;
-import enjine.util.*;
+import enjine.geoMath.*;
 import enjine.Prog;
 
 public class Shooter extends Prog {

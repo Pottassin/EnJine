@@ -1,4 +1,4 @@
-import enjine.GeoMath.Coord;
+import enjine.geoMath.Coord;
 import enjine.Prog;
 
 import javax.imageio.ImageIO;

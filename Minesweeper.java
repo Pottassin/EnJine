@@ -8,8 +8,7 @@ import java.util.*;
 import java.io.FileWriter;
 import java.io.PrintWriter;*/
 
-import enjine.GeoMath.*;
-import enjine.util.*;
+import enjine.geoMath.*;
 import enjine.Prog;
 
 import javax.imageio.ImageIO;
