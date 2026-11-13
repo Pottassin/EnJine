@@ -40,6 +40,14 @@ public class Sokobanlike extends Prog {
         seven(retrieve("7")),
         eight(retrieve("8")),
         nine(retrieve("9")),
+        selectedTileTR(retrieve("SelectionTR")),
+        selectedTileTL(retrieve("SelectionTL")),
+        selectedTileTop(retrieve("SelectionTop")),
+        selectedTileLeft(retrieve("SelectionLeft")),
+        selectedTileBR(retrieve("SelectionBR")),
+        selectedTileBL(retrieve("SelectionBL")),
+        selectedTileBottom(retrieve("SelectionBottom")),
+        selectedTileRight(retrieve("SelectionRight")),
         negative(retrieve("Negative")),
         grass(retrieve("Grass")),
         wallLeft(retrieve("WallLeft")),
@@ -1074,6 +1082,9 @@ public class Sokobanlike extends Prog {
             if (this != LevelEditor.instance) {
                 reload();
             }
+            else {
+                reloadData();
+            }
             settingUp = false;
         }
 
@@ -1081,7 +1092,8 @@ public class Sokobanlike extends Prog {
             gameWon = false;
             gameOver = false;
             isPaused = false;
-            TypeInfo.PlayerInfo.awake = 0;
+            TypeInfo.clear();
+            /*TypeInfo.PlayerInfo.awake = 0;
             TypeInfo.FlagInfo.numUp = 0;
             if (LevelEditor.instance != null && LevelEditor.instance.hidden) {
                 for (Integer i : TypeInfo.ToggleInfo.helds.keySet())
@@ -1092,7 +1104,7 @@ public class Sokobanlike extends Prog {
             else {
                 TypeInfo.ToggleInfo.helds.clear();
                 TypeInfo.GateInfo.states.clear();
-            }
+            }*/
         }
 
         public void destroy() {
@@ -1364,6 +1376,16 @@ public class Sokobanlike extends Prog {
             }
         }
 
+        public void reloadData() {
+            for (int x = 0; x < grid[0].length; x++) {
+                for (int y = 0; y < grid.length; y++) {
+                    for (TypeInst ti : grid[y][x].types) {
+                        ti.ti.reloadData();
+                    }
+                }
+            }
+        }
+
         public GridModRequest requestMove(MoveContext mc) {
             GridModRequest ret = new GridModRequest(mc);
             mc.request = ret;
@@ -1403,7 +1425,8 @@ public class Sokobanlike extends Prog {
     }
     public class LevelEditor extends Level {
         public static LevelEditor instance;
-        public Tile copied;
+        public Tile[][] copied;
+        public boolean dragging = false;
         public boolean hidden = false;
         public LevelEditor() {
             new TileDisplay();
@@ -1447,6 +1470,23 @@ public class Sokobanlike extends Prog {
             if (c.x >= grid[0].length || c.y >= grid.length) return;
             if (grid[c.y()][c.x()] != null)
                 TileDisplay.instance.openWith(grid[c.y()][c.x()]);
+            if (dragging) {
+                if (KeyDetect.instance.heldKeys.contains(KeyEvent.VK_CONTROL) && KeyDetect.instance.heldKeys.contains(KeyEvent.VK_C)) {
+                    int xPos = copied[0][0].pos.x();
+                    int yPos = copied[0][0].pos.y();
+                    copied = new Tile[Math.abs(yPos - c.y()) + 1][Math.abs(xPos - c.x()) + 1];
+                    if (xPos > c.x())
+                        xPos = c.x();
+                    if (yPos > c.y())
+                        yPos = c.y();
+                    for (int x = 0; x < copied[0].length; x++) {
+                        for (int y = 0; y < copied.length; y++) {
+                            copied[y][x] = grid[yPos + y][xPos + x];
+                        }
+                    }
+                }
+                dragging = false;
+            }
         }
 
         public void keyPressed(int e) {
@@ -1498,13 +1538,24 @@ public class Sokobanlike extends Prog {
                     grid = nGrid;
                 }
                 if (e == KeyEvent.VK_C) {
-                    if (TileDisplay.instance.t != null && TileDisplay.instance.isOpen)
-                        copied = TileDisplay.instance.t;
+                    if (TileDisplay.instance.t != null && TileDisplay.instance.isOpen) {
+                        copied = new Tile[1][1];
+                        copied[0][0] = TileDisplay.instance.t;
+                        dragging = true;
+                    }
                 }
                 if (e == KeyEvent.VK_V) {
                     if (copied != null)
-                        if (TileDisplay.instance.t != null && TileDisplay.instance.isOpen)
-                            TileDisplay.instance.t.types = new ArrayList<TypeInst>(copied.types);
+                        if (TileDisplay.instance.t != null && TileDisplay.instance.isOpen) {
+                            for (int x = 0; x < copied[0].length; x++) {
+                                System.out.println(x+": ");
+                                for (int y = 0; y < copied.length; y++) {
+                                    System.out.println(y+", ");
+                                    if (onBoard(x+TileDisplay.instance.t.pos.x(), y+TileDisplay.instance.t.pos.y()))
+                                        grid[y+TileDisplay.instance.t.pos.y()][x+TileDisplay.instance.t.pos.x()].types = new ArrayList<TypeInst>(copied[y][x].types);
+                                }
+                            }
+                        }
                 }
                 if (e == KeyEvent.VK_X) {
                     copied = null;
@@ -1516,13 +1567,22 @@ public class Sokobanlike extends Prog {
             super.render(g);
             if (TileDisplay.instance.t == null || !TileDisplay.instance.isOpen) return;
             if (copied != null) {
-                g.setColor(Color.orange);
-                g.drawRect(copied.pos.x()*20+1, copied.pos.y()*20+1, 18, 18);
-                g.drawRect(copied.pos.x()*20, copied.pos.y()*20, 20, 20);
-                g.drawLine(copied.pos.x()*20+1, copied.pos.y()*20+1, copied.pos.x()*20+5, copied.pos.y()*20+5);
-                g.drawLine(copied.pos.x()*20+19, copied.pos.y()*20+1, copied.pos.x()*20+15, copied.pos.y()*20+5);
-                g.drawLine(copied.pos.x()*20+1, copied.pos.y()*20+19, copied.pos.x()*20+5, copied.pos.y()*20+15);
-                g.drawLine(copied.pos.x()*20+19, copied.pos.y()*20+19, copied.pos.x()*20+15, copied.pos.y()*20+15);
+                g.drawImage(Sprites.selectedTileTL.i, copied[0][0].pos.x()*20, copied[0][0].pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.selectedTileTR.i, copied[0][copied[0].length-1].pos.x()*20, copied[0][copied[0].length-1].pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.selectedTileBL.i, copied[copied.length-1][0].pos.x()*20, copied[copied.length-1][0].pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.selectedTileBR.i, copied[copied.length-1][copied[0].length-1].pos.x()*20, copied[copied.length-1][copied[0].length-1].pos.y()*20, 20, 20, null);
+                for (int x = 1; x < copied[0].length-1; x++) {
+                    g.drawImage(Sprites.selectedTileTop.i, copied[0][x].pos.x()*20, copied[0][x].pos.y()*20, 20, 20, null);
+                }
+                for (int y = 1; y < copied.length-1; y++) {
+                    g.drawImage(Sprites.selectedTileLeft.i, copied[y][0].pos.x()*20, copied[y][0].pos.y()*20, 20, 20, null);
+                }
+                for (int x = 1; x < copied[0].length-1; x++) {
+                    g.drawImage(Sprites.selectedTileBottom.i, copied[copied.length-1][x].pos.x()*20, copied[copied.length-1][x].pos.y()*20, 20, 20, null);
+                }
+                for (int y = 1; y < copied.length-1; y++) {
+                    g.drawImage(Sprites.selectedTileRight.i, copied[y][copied[0].length-1].pos.x()*20, copied[y][copied[0].length-1].pos.y()*20, 20, 20, null);
+                }
             }
             g.setColor(Color.black);
             g.drawRect(TileDisplay.instance.t.pos.x()*20, TileDisplay.instance.t.pos.y()*20, 20, 20);
@@ -3710,6 +3770,13 @@ public class Sokobanlike extends Prog {
     public static class TypeInfo {
         public boolean isMoving = false;
         public boolean hasPushed = false;
+        public static void clear() {
+            PlayerInfo.awake = 0;
+            BeltInfo.moved.clear();
+            GateInfo.states.clear();
+            ToggleInfo.helds.clear();
+            FlagInfo.numUp = 0;
+        }
 
         public static class PlayerInfo extends TypeInfo {
             public Coord dir;
@@ -3725,8 +3792,10 @@ public class Sokobanlike extends Prog {
                 dir = new Coord(1, 0);
             }
 
-            public PlayerInfo(Coord d) {
-                awake++;
+            public PlayerInfo(Coord d, boolean a) {
+                sleepy = !a;
+                if (a)
+                    awake++;
                 dir = d;
             }
 
@@ -3800,6 +3869,11 @@ public class Sokobanlike extends Prog {
                         break;
                 }
             }
+
+            @Override
+            public void reloadData() {
+                states.put(id, false);
+            }
         }
         public static class ToggleInfo extends TypeInfo {
             public static TreeMap<Integer, Integer> helds = new TreeMap<Integer, Integer>();
@@ -3830,6 +3904,12 @@ public class Sokobanlike extends Prog {
             public void antinudge(int i) {
                 id--;
                 id = (id+6) % 6;
+                GateInfo.states.put(id, false);
+                helds.put(id, 0);
+            }
+
+            @Override
+            public void reloadData() {
                 GateInfo.states.put(id, false);
                 helds.put(id, 0);
             }
@@ -3949,6 +4029,8 @@ public class Sokobanlike extends Prog {
             System.out.println("anti-nudged");
         }
 
+        public void reloadData() {}
+
         public static TypeInfo infoOfType(TileType tt) {
             if (tt == TileType.belt) return new BeltInfo();
             if (tt == TileType.player) return new PlayerInfo();
@@ -3979,16 +4061,20 @@ public class Sokobanlike extends Prog {
                 }
                 if (tt == TileType.player) {
                     Coord dir = new Coord(-1, 0);
+                    boolean awake = true;
                     while (s.contains("|")) {
                         if (s.charAt(0) == 'c') {
                             dir = new Coord(Integer.parseInt(s.substring(1, s.indexOf(":"))), Integer.parseInt(s.substring(s.indexOf(":")+1, s.indexOf("|"))));
+                        }
+                        else if (s.charAt(0) == 'b') {
+                            awake = Integer.parseInt(s.substring(1, s.indexOf("|"))) != 0;
                         }
                         else {
                             throw new InfoFormattingException(tt);
                         }
                         s = s.substring(s.indexOf("|")+1);
                     }
-                    return new PlayerInfo(dir);
+                    return new PlayerInfo(dir, awake);
                 }
                 if (tt == TileType.gate || tt == TileType.toggleSpikes) {
                     int id = 0;
