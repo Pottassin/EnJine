@@ -40,6 +40,7 @@ public class Sokobanlike extends Prog {
         seven(retrieve("7")),
         eight(retrieve("8")),
         nine(retrieve("9")),
+        negative(retrieve("Negative")),
         selectedTileTR(retrieve("SelectionTR")),
         selectedTileTL(retrieve("SelectionTL")),
         selectedTileTop(retrieve("SelectionTop")),
@@ -48,7 +49,12 @@ public class Sokobanlike extends Prog {
         selectedTileBL(retrieve("SelectionBL")),
         selectedTileBottom(retrieve("SelectionBottom")),
         selectedTileRight(retrieve("SelectionRight")),
-        negative(retrieve("Negative")),
+        inventoryIcon(retrieve("InventoryIcon")),
+        inventoryHoverIcon(retrieve("InventoryHoverIcon")),
+        inventorySelectIcon(retrieve("InventorySelectIcon")),
+        displayIcon(retrieve("DisplayIcon")),
+        displayHoverIcon(retrieve("DisplayHoverIcon")),
+        displaySelectIcon(retrieve("DisplaySelectIcon")),
         grass(retrieve("Grass")),
         wallLeft(retrieve("WallLeft")),
         wallRight(retrieve("WallRight")),
@@ -59,6 +65,10 @@ public class Sokobanlike extends Prog {
         chudRight(retrieve("ChudRight")),
         chudUp(retrieve("ChudUp")),
         chudDown(retrieve("ChudDown")),
+        chudCrippleLeft(retrieve("ChudCrippleLeft")),
+        chudCrippleRight(retrieve("ChudCrippleRight")),
+        chudCrippleUp(retrieve("ChudCrippleUp")),
+        chudCrippleDown(retrieve("ChudCrippleDown")),
         box(retrieve("Box")),
         beltLeft(retrieve("BeltLeft")),
         beltRight(retrieve("BeltRight")),
@@ -1073,6 +1083,7 @@ public class Sokobanlike extends Prog {
         public boolean isPaused = false;
         public boolean settingUp = false;
         public boolean moveResolveEmpty = false;
+        public Coord offset = new Coord();
 
         public void start() {
             activeLevel = this;
@@ -1166,7 +1177,7 @@ public class Sokobanlike extends Prog {
                 System.out.println("END DEBUG #2 -----------");
                 return;
             }
-            System.out.println("\nFirst Check ______________/");
+            //System.out.println("\nFirst Check ______________/");
             resolveMoves();
             for (int x = 0; x < grid[0].length; x++) {
                 for (int y = 0; y < grid.length; y++) {
@@ -1184,7 +1195,7 @@ public class Sokobanlike extends Prog {
             int iter = 0;
             while (true) {
                 iter++;
-                System.out.println("\nresolve iteration " + iter);
+                //System.out.println("\nresolve iteration " + iter);
                 coords.clear();
                 // pull requests
                 for (GridModRequest r : moveQueue) {
@@ -1197,15 +1208,12 @@ public class Sokobanlike extends Prog {
                 // sort the moveds requests
                 for (TypeInst ti : moved) {
                     ti.requests.sort(GridModRequest::compareTo);
-                    System.out.println("Sorteds " + ti + ": {");
+                    /*System.out.println("Sorteds " + ti + ": {");
                     for (GridModRequest gmr : ti.requests) {
                         System.out.println(gmr);
                     }
-                    System.out.println("}");
+                    System.out.println("}");*/
                 }
-                // determine which moves are used
-                // definitely inefficient, later problem
-                // need to consume requests that point counter to another request or the same TypeInst
                 boolean superseded;
                 int dirs;
                 for (int d : allMoves.keySet()) {
@@ -1214,9 +1222,9 @@ public class Sokobanlike extends Prog {
                         int dir = 0;
                         for (GridModRequest gmr : ti.requests) {
                             if (!gmr.isConsumed) {
-                                if (gmr.move.depth < d) { superseded = true; System.out.println("found higher priority move"); }
-                                else if (gmr.move.depth == d) { if (superseded) { System.out.println("superseded"); gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ } superseded = true; }
-                                else if (superseded) {  System.out.println("superseded"); gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ }
+                                if (gmr.move.depth < d) { superseded = true; /*System.out.println("found higher priority move");*/ }
+                                else if (gmr.move.depth == d) { if (superseded) { /*System.out.println("superseded");*/ gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ } superseded = true; }
+                                else if (superseded) {  /*System.out.println("superseded");*/ gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ }
                             }
                         }
                     }
@@ -1249,23 +1257,24 @@ public class Sokobanlike extends Prog {
                         if (r.move.depth < 0) continue;
                         if (r.superseded) continue;
                         if (r.isConsumed) {
-                            System.out.println("Om nom nom yummy move");
+                            //System.out.println("Om nom nom yummy move");
                             if (r.move.tile.pos != null) {
                                 r.move.type.tt.blocked.apply(r.move);
                             }
                         }
                         else {
-                            System.out.println("Executing move: " + r);
+                            //System.out.println("Executing move: " + r);
                             if (r.move.srcTile.pos != null) {
                                 if (r.move.srcTile.types.contains(r.move.srcType)) {
                                     r.move.srcTile.types.remove(r.move.srcType);
                                     r.move.tile.types.add(r.move.srcType);
-                                    MoveContext pushC = new MoveContext(r.move.curLevel, r.move.tile, r.move.type, null, null, r.move.dir, r.move.max, r.move.depth);
+                                    MoveContext pushC = new MoveContext(r.move.curLevel, r.move.tile, r.move.srcType, null, null, r.move.dir, r.move.max, r.move.depth);
+                                    r.move.tile.push(pushC);
                                     r.move.srcTile.exit(pushC);
                                     if (r.cascadeContext != null)
                                         conseqs.add(r.cascadeContext);
                                 } else {
-                                    System.out.println("JUKED, expected " + r.move.srcType.tt + " at " + r.move.srcTile.pos);
+                                    //System.out.println("JUKED, expected " + r.move.srcType.tt + " at " + r.move.srcTile.pos);
                                     r.consume();
                                     continue;
                                 }
@@ -1289,10 +1298,10 @@ public class Sokobanlike extends Prog {
                     c.srcTile.types.remove(c.srcType);
                 }
                 removeQueue.clear();
-                System.out.println("End queue: ");
+                /*System.out.println("End queue: ");
                 for (GridModRequest r : moveQueue) {
                     System.out.println(r);
-                }
+                }*/
                 for (int x = 0; x < grid[0].length; x++) {
                     for (int y = 0; y < grid.length; y++) {
                         grid[y][x].rmCycle(this);
@@ -1315,9 +1324,9 @@ public class Sokobanlike extends Prog {
             RenderContext rc;
             for (int x = 0; x < grid[0].length; x++) {
                 for (int y = 0; y < grid.length; y++) {
-                    rc = new RenderContext(this, grid[y][x], null, null, null);
+                    rc = new RenderContext(this, grid[y][x], null, null, offset, null);
                     if (grid[y][x] != null)
-                        if (grid[y][x].types.size() > 0) {
+                        if (!grid[y][x].types.isEmpty()) {
                             for (TypeInst ti : grid[y][x].types) {
                                 if (ti.tt == null) break;
                                 rc.srcType = ti;
@@ -1431,6 +1440,8 @@ public class Sokobanlike extends Prog {
         public LevelEditor() {
             new TileDisplay();
             new TileInventory();
+            new WindowBar();
+            offset.y=50;
         }
 
         public void start() {
@@ -1438,8 +1449,9 @@ public class Sokobanlike extends Prog {
             hidden = false;
             instance = this;
             MouseDetect.instance.addP(this);
-            TileInventory.instance.start();
+            //TileInventory.instance.start();
             KeyDetect.instance.addP(this);
+            WindowBar.instance.start();
         }
 
         public void destroy() {
@@ -1450,6 +1462,7 @@ public class Sokobanlike extends Prog {
             KeyDetect.instance.removeP(this);
             if (TileDisplay.instance.isOpen)
                 TileDisplay.instance.destroy();
+            WindowBar.instance.destroy();
         }
 
         public void hide() {
@@ -1460,10 +1473,11 @@ public class Sokobanlike extends Prog {
             KeyDetect.instance.removeP(this);
             if (TileDisplay.instance.isOpen)
                 TileDisplay.instance.destroy();
+            WindowBar.instance.destroy();
         }
 
         public void mousePressed(MouseEvent e) {
-            Coord c = MouseDetect.instance.mousePos();
+            Coord c = MouseDetect.instance.mousePos().subtract(offset);
             c.x /= 20;
             c.y /= 20;
             if (c.x < 0 || c.y < 0) return;
@@ -1548,9 +1562,7 @@ public class Sokobanlike extends Prog {
                     if (copied != null)
                         if (TileDisplay.instance.t != null && TileDisplay.instance.isOpen) {
                             for (int x = 0; x < copied[0].length; x++) {
-                                System.out.println(x+": ");
                                 for (int y = 0; y < copied.length; y++) {
-                                    System.out.println(y+", ");
                                     if (onBoard(x+TileDisplay.instance.t.pos.x(), y+TileDisplay.instance.t.pos.y()))
                                         grid[y+TileDisplay.instance.t.pos.y()][x+TileDisplay.instance.t.pos.x()].types = new ArrayList<TypeInst>(copied[y][x].types);
                                 }
@@ -1567,30 +1579,30 @@ public class Sokobanlike extends Prog {
             super.render(g);
             if (TileDisplay.instance.t == null || !TileDisplay.instance.isOpen) return;
             if (copied != null) {
-                g.drawImage(Sprites.selectedTileTL.i, copied[0][0].pos.x()*20, copied[0][0].pos.y()*20, 20, 20, null);
-                g.drawImage(Sprites.selectedTileTR.i, copied[0][copied[0].length-1].pos.x()*20, copied[0][copied[0].length-1].pos.y()*20, 20, 20, null);
-                g.drawImage(Sprites.selectedTileBL.i, copied[copied.length-1][0].pos.x()*20, copied[copied.length-1][0].pos.y()*20, 20, 20, null);
-                g.drawImage(Sprites.selectedTileBR.i, copied[copied.length-1][copied[0].length-1].pos.x()*20, copied[copied.length-1][copied[0].length-1].pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.selectedTileTL.i, copied[0][0].pos.x()*20 + offset.x(), copied[0][0].pos.y()*20 + offset.y(), 20, 20, null);
+                g.drawImage(Sprites.selectedTileTR.i, copied[0][copied[0].length-1].pos.x()*20 + offset.x(), copied[0][copied[0].length-1].pos.y()*20 + offset.y(), 20, 20, null);
+                g.drawImage(Sprites.selectedTileBL.i, copied[copied.length-1][0].pos.x()*20 + offset.x(), copied[copied.length-1][0].pos.y()*20 + offset.y(), 20, 20, null);
+                g.drawImage(Sprites.selectedTileBR.i, copied[copied.length-1][copied[0].length-1].pos.x()*20 + offset.x(), copied[copied.length-1][copied[0].length-1].pos.y()*20 + offset.y(), 20, 20, null);
                 for (int x = 1; x < copied[0].length-1; x++) {
-                    g.drawImage(Sprites.selectedTileTop.i, copied[0][x].pos.x()*20, copied[0][x].pos.y()*20, 20, 20, null);
+                    g.drawImage(Sprites.selectedTileTop.i, copied[0][x].pos.x()*20 + offset.x(), copied[0][x].pos.y()*20 + offset.y(), 20, 20, null);
                 }
                 for (int y = 1; y < copied.length-1; y++) {
-                    g.drawImage(Sprites.selectedTileLeft.i, copied[y][0].pos.x()*20, copied[y][0].pos.y()*20, 20, 20, null);
+                    g.drawImage(Sprites.selectedTileLeft.i, copied[y][0].pos.x()*20 + offset.x(), copied[y][0].pos.y()*20 + offset.y(), 20, 20, null);
                 }
                 for (int x = 1; x < copied[0].length-1; x++) {
-                    g.drawImage(Sprites.selectedTileBottom.i, copied[copied.length-1][x].pos.x()*20, copied[copied.length-1][x].pos.y()*20, 20, 20, null);
+                    g.drawImage(Sprites.selectedTileBottom.i, copied[copied.length-1][x].pos.x()*20 + offset.x(), copied[copied.length-1][x].pos.y()*20 + offset.y(), 20, 20, null);
                 }
                 for (int y = 1; y < copied.length-1; y++) {
-                    g.drawImage(Sprites.selectedTileRight.i, copied[y][copied[0].length-1].pos.x()*20, copied[y][copied[0].length-1].pos.y()*20, 20, 20, null);
+                    g.drawImage(Sprites.selectedTileRight.i, copied[y][copied[0].length-1].pos.x()*20 + offset.x(), copied[y][copied[0].length-1].pos.y()*20 + offset.y(), 20, 20, null);
                 }
             }
             g.setColor(Color.black);
-            g.drawRect(TileDisplay.instance.t.pos.x()*20, TileDisplay.instance.t.pos.y()*20, 20, 20);
+            g.drawRect(TileDisplay.instance.t.pos.x()*20 + offset.x(), TileDisplay.instance.t.pos.y()*20 + offset.y(), 20, 20);
         }
 
         public class TileDisplay extends Script {
             public static TileDisplay instance;
-            public Coord pos = new Coord(0,0);
+            public Coord pos = new Coord(0,50);
             public Tile t;
             public RectCollider grabber = new RectCollider(new Coord(0, 12), new PCoord(0, 10), 12);
             public RectCollider typePane = new RectCollider(new Coord(10, 12), new PCoord(0, 0), 12);
@@ -1627,6 +1639,7 @@ public class Sokobanlike extends Prog {
             }
 
             public void mousePressed(MouseEvent e) {
+                if (!isOpen) return;
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if (grabber.isColliding(new PointCollider(MouseDetect.instance.mousePos()))) {
                         followMouse = true;
@@ -1658,9 +1671,7 @@ public class Sokobanlike extends Prog {
                 }
             }
 
-            public void mouseReleased(MouseEvent e) {
-                followMouse = false;
-            }
+            public void mouseReleased(MouseEvent e) { if (!isOpen) return; followMouse = false; }
 
             public void openWith(Tile t) {
                 this.t = t;
@@ -1676,11 +1687,12 @@ public class Sokobanlike extends Prog {
                 g.drawRect(grabber.og.x(), (int) (grabber.og.y() - grabber.width), (int) grabber.length.d, (int) grabber.width * 2);
                 g.setColor(Color.white);
                 g.fillRect(typePane.og.x(), (int) (typePane.og.y() - typePane.width), (int) typePane.length.d, (int) typePane.width * 2);
+                if (t == null) return;
                 TypeInst type;
                 for (int x = 0; x < t.types.size(); x++) {
                     type = t.types.get(x);
                     if (type == null) { t.types.remove(x); x--; continue; }
-                    type.tt.render.accept(g, new RenderContext(LevelEditor.instance, t, type, new Coord(typePane.og.x + x*22 + 1, typePane.og.y-10), null));
+                    type.tt.render.accept(g, new RenderContext(LevelEditor.instance, t, type, new Coord(typePane.og.x + x*22 + 1, typePane.og.y-10), null, null));
                 }
             }
         }
@@ -1688,7 +1700,7 @@ public class Sokobanlike extends Prog {
         public class TileInventory extends Script {
 
             public static TileInventory instance;
-            public Coord pos = new Coord(0,0);
+            public Coord pos = new Coord(0,50);
             public RectCollider grabber = new RectCollider(new Coord(0, 12), new PCoord(0, 10), 12);
             public RectCollider typePane = new RectCollider(new Coord(10, 12), new PCoord(0, 0), 12);
             boolean followMouse = false;
@@ -1776,8 +1788,140 @@ public class Sokobanlike extends Prog {
                 TypeInst type;
                 for (int x = tpr*row; x < TileType.tileTypes().length && x < tpr*(row+1); x++) {
                     type = new TypeInst(TileType.tileTypes()[x], TypeInfo.infoOfType(TileType.tileTypes()[x]));
-                    type.tt.render.accept(g, new RenderContext(LevelEditor.instance, null, type, new Coord(typePane.og.x + (x - tpr*row)*22 + 1, typePane.og.y-10), null));
+                    type.tt.render.accept(g, new RenderContext(LevelEditor.instance, null, type, new Coord(typePane.og.x + (x - tpr*row)*22 + 1, typePane.og.y-10), null, null));
                 }
+            }
+        }
+
+        public class WindowBar extends Script {
+            public static WindowBar instance;
+            public DisplayIcon di;
+            public InventoryIcon ii;
+            public WindowBar() {
+                instance = this;
+                di = new DisplayIcon();
+                ii = new InventoryIcon();
+            }
+            public void start() {
+                CameraManager.addToDraw(this);
+                di.start();
+                ii.start();
+            }
+
+            public void destroy() {
+                CameraManager.removeToDraw(this);
+                di.destroy();
+                ii.destroy();
+            }
+            public class DisplayIcon extends Script {
+
+                RectCollider coll = new RectCollider(new Coord(5, 25), new PCoord(0, 40), 20);
+
+                /*public enum ColorState {
+                    rest(new Color(0, 255, 0)),
+                    hover(new Color(0, 225, 0)),
+                    press(new Color(200, 20, 0));
+                    Color c;
+                    ColorState(Color c) { this.c = c; }
+                }*/
+
+                boolean isSelected = false;
+                boolean isPressed = false;
+
+                public void start() {
+                    addToUpdate(this);
+                    MouseDetect.instance.addP(this);
+                    MouseDetect.instance.addR(this);
+                }
+
+                public void destroy() {
+                    removeToUpdate(this);
+                    MouseDetect.instance.removeP(this);
+                    MouseDetect.instance.removeR(this);
+                }
+
+                public void update() {
+                    isSelected = coll.isColliding(new PointCollider(MouseDetect.instance.mousePos()));
+                    if (!isSelected) isPressed = false;
+                }
+
+                public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
+                public void mouseReleased(MouseEvent e) { if (isPressed) {
+                    if (TileDisplay.instance.isOpen) {
+                        TileDisplay.instance.destroy();
+                    }
+                    else {
+                        TileDisplay.instance.start();
+                    }
+                    isPressed = false;
+                } }
+
+                public void render(Graphics g) {
+                    if (isPressed)
+                        g.drawImage(Sprites.displaySelectIcon.i, 5, 5, 40, 40, null);
+                    else if (isSelected)
+                        g.drawImage(Sprites.displayHoverIcon.i, 5, 5, 40, 40, null);
+                    else
+                        g.drawImage(Sprites.displayIcon.i, 5, 5, 40, 40, null);
+                }
+            }
+            public class InventoryIcon extends Script {
+                RectCollider coll = new RectCollider(new Coord(55, 25), new PCoord(0, 40), 20);
+
+                /*public enum ColorState {
+                    rest(new Color(0, 255, 0)),
+                    hover(new Color(0, 225, 0)),
+                    press(new Color(200, 20, 0));
+                    Color c;
+                    ColorState(Color c) { this.c = c; }
+                }*/
+
+                boolean isSelected = false;
+                boolean isPressed = false;
+
+                public void start() {
+                    addToUpdate(this);
+                    MouseDetect.instance.addP(this);
+                    MouseDetect.instance.addR(this);
+                }
+
+                public void destroy() {
+                    removeToUpdate(this);
+                    MouseDetect.instance.removeP(this);
+                    MouseDetect.instance.removeR(this);
+                }
+
+                public void update() {
+                    isSelected = coll.isColliding(new PointCollider(MouseDetect.instance.mousePos()));
+                    if (!isSelected) isPressed = false;
+                }
+
+                public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
+                public void mouseReleased(MouseEvent e) { if (isPressed) {
+                    if (TileInventory.instance.isOpen) {
+                        TileInventory.instance.destroy();
+                    }
+                    else {
+                        TileInventory.instance.start();
+                    }
+                    isPressed = false;
+                } }
+
+                public void render(Graphics g) {
+                    if (isPressed)
+                        g.drawImage(Sprites.inventorySelectIcon.i, 55, 5, 40, 40, null);
+                    else if (isSelected)
+                        g.drawImage(Sprites.inventoryHoverIcon.i, 55, 5, 40, 40, null);
+                    else
+                        g.drawImage(Sprites.inventoryIcon.i, 55, 5, 40, 40, null);
+                }
+            }
+
+            public void render(Graphics g) {
+                g.setColor(Color.darkGray);
+                g.drawRect(0, 0, 1000, 50);
+                di.render(g);
+                ii.render(g);
             }
         }
     }
@@ -1793,8 +1937,8 @@ public class Sokobanlike extends Prog {
         public boolean superseded = false;
         public GridModRequest(MoveContext c) { move = c; }
         public GridModRequest(MoveContext c, Function<MoveContext, Boolean> cFunc, MoveContext cCont, ArrayList<GridModRequest> q) { move = c; cascade = cFunc; cascadeContext = cCont; queue = q; }
-        public void consume() { System.out.println("Consuming: " + this); if (isConsumed) return; isConsumed = true; if (src != null) src.request.consume(); if (queue != null) for (GridModRequest gmr : queue) gmr.consume(); }
-        public void supersede() { System.out.println("Supersede: " + this); if (superseded) return; superseded = true; if (queue != null) for (GridModRequest gmr : queue) gmr.supersede(); }
+        public void consume() { /*System.out.println("Consuming: " + this);*/ if (isConsumed) return; isConsumed = true; if (src != null) src.request.consume(); if (queue != null) for (GridModRequest gmr : queue) gmr.consume(); }
+        public void supersede() { /*System.out.println("Supersede: " + this);*/ if (superseded) return; superseded = true; if (queue != null) for (GridModRequest gmr : queue) gmr.supersede(); }
 
         public int compareTo(GridModRequest o) {
             //if (priority > o.priority) return 1;
@@ -2737,7 +2881,7 @@ public class Sokobanlike extends Prog {
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
-                g.drawImage(Sprites.grass.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.grass.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
 
             else
                 g.drawImage(Sprites.grass.i, c.c.x(), c.c.y(), 20, 20, null);
@@ -2751,7 +2895,7 @@ public class Sokobanlike extends Prog {
                 if (c.srcTile.pos.y()+1<c.curLevel.grid.length) {
                     if (c.curLevel.grid[c.srcTile.pos.y()+1][c.srcTile.pos.x()] != null) {
                         if (c.curLevel.grid[c.srcTile.pos.y()+1][c.srcTile.pos.x()].hasType(1)) {
-                            g.drawImage(Sprites.wallTop.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                            g.drawImage(Sprites.wallTop.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                             return;
                         }
                     }
@@ -2768,17 +2912,17 @@ public class Sokobanlike extends Prog {
                     if (c.curLevel.grid[c.srcTile.pos.y()][c.srcTile.pos.x()+1] != null) {
                         if (c.curLevel.grid[c.srcTile.pos.y()][c.srcTile.pos.x()+1].hasType(1)) {
                             if (hasLeft)
-                                g.drawImage(Sprites.wallFront.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                                g.drawImage(Sprites.wallFront.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                             else
-                                g.drawImage(Sprites.wallLeft.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                                g.drawImage(Sprites.wallLeft.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                             return;
                         }
                     }
                 }
                 if (hasLeft)
-                    g.drawImage(Sprites.wallRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.wallRight.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 else
-                    g.drawImage(Sprites.wallPillar.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.wallPillar.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
             }
             else {
                 g.drawImage(Sprites.wallPillar.i, c.c.x(), c.c.y(), 20, 20, null);
@@ -2790,7 +2934,7 @@ public class Sokobanlike extends Prog {
                 GenericMove.allow.func, GenericMove.line.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
-                g.drawImage(Sprites.box.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.box.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
             else
                 g.drawImage(Sprites.box.i, c.c.x(), c.c.y(), 20, 20, null);
         }),
@@ -2802,20 +2946,32 @@ public class Sokobanlike extends Prog {
             if (c.c == null) {
                 if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
                     if (pi.sleepy) {
-                        g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20 + 20, 20, -20, null);
+                        g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y() + 20, 20, -20, null);
                         return;
                     }
-                    if (pi.dir.y == -1)
-                        g.drawImage(Sprites.chudUp.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
-                    else if (pi.dir.y == 1)
-                        g.drawImage(Sprites.chudDown.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
-                    else if (pi.dir.x == -1)
-                        g.drawImage(Sprites.chudLeft.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
-                    else
-                        g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    if (pi.crippled) {
+                        if (pi.dir.y == -1)
+                            g.drawImage(Sprites.chudCrippleUp.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                        else if (pi.dir.y == 1)
+                            g.drawImage(Sprites.chudCrippleDown.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                        else if (pi.dir.x == -1)
+                            g.drawImage(Sprites.chudCrippleLeft.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                        else
+                            g.drawImage(Sprites.chudCrippleRight.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                    }
+                    else {
+                        if (pi.dir.y == -1)
+                            g.drawImage(Sprites.chudUp.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                        else if (pi.dir.y == 1)
+                            g.drawImage(Sprites.chudDown.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                        else if (pi.dir.x == -1)
+                            g.drawImage(Sprites.chudLeft.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                        else
+                            g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                    }
                 }
                 else {
-                    g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.chudRight.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 }
             }
             else {
@@ -2830,16 +2986,16 @@ public class Sokobanlike extends Prog {
             if (c.c == null) {
                 if (c.srcType.ti instanceof TypeInfo.BeltInfo bi) {
                     if (bi.dir.y == -1)
-                        g.drawImage(Sprites.beltUp.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                        g.drawImage(Sprites.beltUp.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                     else if (bi.dir.y == 1)
-                        g.drawImage(Sprites.beltDown.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                        g.drawImage(Sprites.beltDown.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                     else if (bi.dir.x == -1)
-                        g.drawImage(Sprites.beltLeft.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                        g.drawImage(Sprites.beltLeft.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                     else
-                        g.drawImage(Sprites.beltRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                        g.drawImage(Sprites.beltRight.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 }
                 else {
-                    g.drawImage(Sprites.beltRight.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.beltRight.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 }
             }
             else
@@ -2852,7 +3008,7 @@ public class Sokobanlike extends Prog {
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             g.setColor(new Color(130,190,255));
             if (c.c == null)
-                g.fillRect(c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20);
+                g.fillRect(c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20);
             else
                 g.fillRect(c.c.x(), c.c.y(), 20, 20);
         }),
@@ -2865,22 +3021,22 @@ public class Sokobanlike extends Prog {
             if (c.c == null) {
                 if (TypeInfo.GateInfo.states.get(gi.id)==gi.not) {
                     switch (gi.id) {
-                        case 0: g.drawImage(Sprites.closedGate1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.closedGate2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.closedGate3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.closedGate4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.closedGate5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.closedGate6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.closedGate1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.closedGate2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.closedGate3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.closedGate4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.closedGate5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.closedGate6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
                 else {
                     switch (gi.id) {
-                        case 0: g.drawImage(Sprites.openGate1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.openGate2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.openGate3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.openGate4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.openGate5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.openGate6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.openGate1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.openGate2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.openGate3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.openGate4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.openGate5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.openGate6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
             }
@@ -2916,22 +3072,22 @@ public class Sokobanlike extends Prog {
             if (c.c == null) {
                 if (bi.on) {
                     switch (bi.id) {
-                        case 0: g.drawImage(Sprites.buttonDown1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.buttonDown2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.buttonDown3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.buttonDown4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.buttonDown5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.buttonDown6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.buttonDown1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.buttonDown2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.buttonDown3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.buttonDown4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.buttonDown5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.buttonDown6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
                 else {
                     switch (bi.id) {
-                        case 0: g.drawImage(Sprites.button1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.button2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.button3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.button4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.button5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.button6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.button1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.button2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.button3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.button4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.button5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.button6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
             }
@@ -2964,7 +3120,7 @@ public class Sokobanlike extends Prog {
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
-                g.drawImage(Sprites.spikes.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.spikes.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
             else
                 g.drawImage(Sprites.spikes.i, c.c.x(), c.c.y(), 20, 20, null);
         }),
@@ -2977,22 +3133,22 @@ public class Sokobanlike extends Prog {
             if (c.c == null) {
                 if (TypeInfo.GateInfo.states.get(gi.id)==gi.not) {
                     switch (gi.id) {
-                        case 0: g.drawImage(Sprites.spikesUp1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.spikesUp2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.spikesUp3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.spikesUp4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.spikesUp5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.spikesUp6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.spikesUp1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.spikesUp2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.spikesUp3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.spikesUp4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.spikesUp5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.spikesUp6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
                 else {
                     switch (gi.id) {
-                        case 0: g.drawImage(Sprites.spikesDown1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.spikesDown2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.spikesDown3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.spikesDown4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.spikesDown5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.spikesDown6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.spikesDown1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.spikesDown2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.spikesDown3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.spikesDown4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.spikesDown5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.spikesDown6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
             }
@@ -3027,9 +3183,9 @@ public class Sokobanlike extends Prog {
             TypeInfo.BombInfo bi = (TypeInfo.BombInfo) c.srcType.ti;
             if (c.c == null) {
                 if (bi.isLit)
-                    g.drawImage(Sprites.bombLit.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.bombLit.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 else
-                    g.drawImage(Sprites.bomb.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.bomb.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 renderNumbers(c.srcTile.pos.multiply(20).add(5), new Coord(10, 10), bi.countdown, g);
             }
             else {
@@ -3046,7 +3202,7 @@ public class Sokobanlike extends Prog {
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
-                g.drawImage(Sprites.fire.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.fire.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
             else
                 g.drawImage(Sprites.fire.i, c.c.x(), c.c.y(), 20, 20, null);
         }),
@@ -3056,7 +3212,7 @@ public class Sokobanlike extends Prog {
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
-                g.drawImage(Sprites.eternalFire.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.eternalFire.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
             else
                 g.drawImage(Sprites.eternalFire.i, c.c.x(), c.c.y(), 20, 20, null);
         }),
@@ -3068,9 +3224,9 @@ public class Sokobanlike extends Prog {
             TypeInfo.FlagInfo fi = (TypeInfo.FlagInfo) c.srcType.ti;
             if (c.c == null) {
                 if (fi.isUp)
-                    g.drawImage(Sprites.flag.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.flag.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 else
-                    g.drawImage(Sprites.flagDown.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null);
+                    g.drawImage(Sprites.flagDown.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
             }
             else {
                 if (fi.isUp)
@@ -3086,7 +3242,7 @@ public class Sokobanlike extends Prog {
                 GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
                 GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
             if (c.c == null)
-                g.drawImage(Sprites.pasterRight.i, c.srcTile.pos.x()*20, c.srcTile.pos.y()*20, 20, 20, null);
+                g.drawImage(Sprites.pasterRight.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
             else
                 g.drawImage(Sprites.pasterRight.i, c.c.x(), c.c.y(), 20, 20, null);
         }),
@@ -3101,52 +3257,52 @@ public class Sokobanlike extends Prog {
             if (c.c == null) {
                 if (wi.dir.x == 0 && wi.dir.y == 0) {
                     switch (wi.id) {
-                        case 0: g.drawImage(Sprites.watcher1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.watcher2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.watcher3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.watcher4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.watcher5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.watcher6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.watcher1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcher2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcher3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcher4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcher5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcher6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
                 else if (wi.dir.x == 1 && wi.dir.y == 0) {
                     switch (wi.id) {
-                        case 0: g.drawImage(Sprites.watcherRight1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.watcherRight2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.watcherRight3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.watcherRight4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.watcherRight5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.watcherRight6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.watcherRight1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherRight2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherRight3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherRight4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherRight5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherRight6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
                 else if (wi.dir.x == 0 && wi.dir.y == 1) {
                     switch (wi.id) {
-                        case 0: g.drawImage(Sprites.watcherDown1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.watcherDown2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.watcherDown3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.watcherDown4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.watcherDown5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.watcherDown6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.watcherDown1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherDown2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherDown3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherDown4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherDown5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherDown6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
                 else if (wi.dir.x == -1 && wi.dir.y == 0) {
                     switch (wi.id) {
-                        case 0: g.drawImage(Sprites.watcherLeft1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.watcherLeft2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.watcherLeft3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.watcherLeft4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.watcherLeft5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.watcherLeft6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.watcherLeft1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherLeft2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherLeft3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherLeft4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherLeft5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherLeft6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
                 else if (wi.dir.x == 0 && wi.dir.y == -1) {
                     switch (wi.id) {
-                        case 0: g.drawImage(Sprites.watcherUp1.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 1: g.drawImage(Sprites.watcherUp2.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 2: g.drawImage(Sprites.watcherUp3.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 3: g.drawImage(Sprites.watcherUp4.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 4: g.drawImage(Sprites.watcherUp5.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
-                        case 5: g.drawImage(Sprites.watcherUp6.i, c.srcTile.pos.x() * 20, c.srcTile.pos.y() * 20, 20, 20, null); break;
+                        case 0: g.drawImage(Sprites.watcherUp1.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 1: g.drawImage(Sprites.watcherUp2.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 2: g.drawImage(Sprites.watcherUp3.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 3: g.drawImage(Sprites.watcherUp4.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 4: g.drawImage(Sprites.watcherUp5.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
+                        case 5: g.drawImage(Sprites.watcherUp6.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null); break;
                     }
                 }
             }
@@ -3260,14 +3416,14 @@ public class Sokobanlike extends Prog {
                     moveDir = new Coord(1,0);
                 }
                 if (moveDir != null) {
-                    if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) pi.dir = moveDir;
+                    if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) { pi.dir = moveDir; if (pi.crippled) return false; }
                     Coord toPos = c.srcTile.pos.add(moveDir);
                     if (toPos.y() < 0 || toPos.y() >= c.curLevel.grid.length) return false;
                     if (toPos.x() < 0 || toPos.x() >= c.curLevel.grid[0].length) return false;
                     if (c.curLevel.grid[toPos.y()][toPos.x()] == null) return false;
                     GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, c.curLevel.grid[toPos.y()][toPos.x()], null, moveDir, 2, 1));
                     gmr.move.src = "from input";
-                    System.out.println(gmr);
+                    //System.out.println(gmr);
                     if (!c.curLevel.grid[toPos.y()][toPos.x()].attemptPush(gmr.move)) return false;
                     c.srcType.addRequest(gmr);
                     c.curLevel.addMove(gmr);
@@ -3437,14 +3593,17 @@ public class Sokobanlike extends Prog {
                 if (pi.onCool) return false;
                 if (c.tile.pos.x+1 < c.curLevel.grid[0].length) {
                     //ArrayList<TypeInst> types = c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1].types;
+                    /*if (c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1].types.getLast().tt == TileType.empty) return false;
+                    TypeInst ti = c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1].types.getLast();
+                    ti.tt = c.srcType.tt;
+                    ti.ti = c.srcType.ti;
+                    pi.onCool = true;*/
                     for (TypeInst ti : c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1].types.reversed()) {
-                        if (ti.tt != empty) {
-                            //this.id = id;
-                            ti.tt = c.srcType.tt;
-                            ti.ti = c.srcType.ti;
-                            pi.onCool = true;
-                            break;
-                        }
+                        if (ti.tt.attemptPush != line.func) continue;
+                        ti.tt = c.srcType.tt;
+                        ti.ti = c.srcType.ti;
+                        pi.onCool = true;
+                        break;
                     }
                 }
                 return true;
@@ -3533,6 +3692,7 @@ public class Sokobanlike extends Prog {
                 for (TypeInst ti : c.srcTile.types) {
                     if (ti.tt == TileType.player) {
                         fi.isUp = true;
+                        break;
                     }
                 }
                 if (fi.isUp && !wasUp) {
@@ -3553,7 +3713,7 @@ public class Sokobanlike extends Prog {
             }),
             attemptConvey((Context c) -> {
                 if (c.curLevel.settingUp) return false;
-                System.out.println("Do convey: " + c.curLevel.moveResolveEmpty);
+                //System.out.println("Do convey: " + c.curLevel.moveResolveEmpty);
                 Coord toPos = new Coord(c.srcTile.pos);
                 toPos.x += ((TypeInfo.BeltInfo) c.srcType.ti).dir.x;
                 toPos.y += ((TypeInfo.BeltInfo) c.srcType.ti).dir.y;
@@ -3566,7 +3726,7 @@ public class Sokobanlike extends Prog {
                         if (gmr.priority == -1 && gmr.move.depth == 1) { return false; }
                     }
                     if (!TypeInfo.BeltInfo.moved.contains(ti)) {
-                        System.out.println("Push thingy: "+ti.tt);
+                        //System.out.println("Push thingy: "+ti.tt);
                         TypeInfo.BeltInfo.moved.add(ti);
                         GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, c.srcTile, ti, ((TypeInfo.BeltInfo) c.srcType.ti).dir, 2, -1));
                         gmr.move.src = "from belt";
@@ -3708,7 +3868,7 @@ public class Sokobanlike extends Prog {
         public TypeInst srcType;
         public Context(Level l, Tile t, TypeInst tt) { curLevel = l; srcTile = t; srcType = tt; }
         public Context newContext(Level l, Tile t, TypeInst tt) { return new Context(l, t, tt); }
-        public RenderContext newRenderContext(Level l, Tile t, TypeInst tt, Coord pos, Coord scale) { return new RenderContext(l, t, tt, pos, scale); }
+        public RenderContext newRenderContext(Level l, Tile t, TypeInst tt, Coord pos, Coord offset, Coord scale) { return new RenderContext(l, t, tt, pos, offset, scale); }
         public MoveContext newMoveContext(Level l, Tile t, TypeInst toMove, Tile srcT, TypeInst tt, Coord d, int maxD, int depth) { return new MoveContext(l, t, toMove, srcT, tt, d, maxD, depth); }
         public MoveContext newMoveContext(Level l, Tile t, TypeInst toMove, Tile srcT, TypeInst tt, Coord d, int maxD, int depth, GridModRequest gmr) { return new MoveContext(l, t, toMove, srcT, tt, d, maxD, depth, gmr); }
         public InputContext newInputContext(Level l, Tile t, TypeInst tt, Input i) { return new InputContext(l, t, tt, i); }
@@ -3720,8 +3880,9 @@ public class Sokobanlike extends Prog {
     }
     public class RenderContext extends Context {
         Coord c;
+        Coord off;
         Coord s;
-        public RenderContext(Level l, Tile t, TypeInst tt, Coord pos, Coord scale) { super(l, t, tt); c = pos; s = scale; }
+        public RenderContext(Level l, Tile t, TypeInst tt, Coord pos, Coord offset, Coord scale) { super(l, t, tt); c = pos; off = offset; s = scale; }
     }
     public class InputContext extends Context {
         public Input input;
@@ -3759,7 +3920,7 @@ public class Sokobanlike extends Prog {
         public TypeInst(TileType tt, TypeInfo ti) { this.tt = tt; this.ti = ti; }
 
         public void addRequest(GridModRequest gmr) {
-            System.out.println("Adding request to " + this + " " + gmr.move.src);
+            //System.out.println("Adding request to " + this + " " + gmr.move.src);
             requests.add(gmr);
         }
 
@@ -3781,6 +3942,7 @@ public class Sokobanlike extends Prog {
         public static class PlayerInfo extends TypeInfo {
             public Coord dir;
             public boolean sleepy = false;
+            public boolean crippled = false;
             public static int awake = 0;
 
             /*
@@ -3792,17 +3954,25 @@ public class Sokobanlike extends Prog {
                 dir = new Coord(1, 0);
             }
 
-            public PlayerInfo(Coord d, boolean a) {
+            public PlayerInfo(Coord d, boolean a, boolean c) {
                 sleepy = !a;
                 if (a)
                     awake++;
+                crippled = c;
                 dir = d;
             }
 
             @Override
-            public void nudge(int i) { sleepy = !sleepy; }
+            public void nudge(int i) {
+                switch (i) {
+                    case 0:
+                        sleepy = !sleepy; break;
+                    case 1:
+                        crippled = !crippled; break;
+                }
+            }
             @Override
-            public void antinudge(int i) { nudge(); }
+            public void antinudge(int i) { nudge(i); }
         }
         public static class BeltInfo extends TypeInfo {
             public static HashSet<TypeInst> moved = new HashSet<TypeInst>();
@@ -4062,19 +4232,24 @@ public class Sokobanlike extends Prog {
                 if (tt == TileType.player) {
                     Coord dir = new Coord(-1, 0);
                     boolean awake = true;
+                    boolean crippled = false;
                     while (s.contains("|")) {
                         if (s.charAt(0) == 'c') {
                             dir = new Coord(Integer.parseInt(s.substring(1, s.indexOf(":"))), Integer.parseInt(s.substring(s.indexOf(":")+1, s.indexOf("|"))));
-                        }
-                        else if (s.charAt(0) == 'b') {
+                        } else if (s.charAt(0) == 'b') {
                             awake = Integer.parseInt(s.substring(1, s.indexOf("|"))) != 0;
-                        }
-                        else {
+                            if (s.charAt(s.indexOf("|")+1) <= 57 && s.charAt(s.indexOf("|")+1) >= 48) {
+                                s = s.substring(s.indexOf("|")+1);
+                                crippled = Integer.parseInt(s.substring(0, s.indexOf("|"))) != 0;
+                            } else {
+                                throw new InfoFormattingException(tt);
+                            }
+                        } else {
                             throw new InfoFormattingException(tt);
                         }
                         s = s.substring(s.indexOf("|")+1);
                     }
-                    return new PlayerInfo(dir, awake);
+                    return new PlayerInfo(dir, awake, crippled);
                 }
                 if (tt == TileType.gate || tt == TileType.toggleSpikes) {
                     int id = 0;
@@ -4159,7 +4334,7 @@ public class Sokobanlike extends Prog {
         public static String infoToString(TypeInfo ti) {
             String ret = "";
             if (ti instanceof PlayerInfo pi) {
-                ret = "|c"+pi.dir.x()+":"+pi.dir.y();
+                ret = "|c"+pi.dir.x()+":"+pi.dir.y()+"|b"+(pi.sleepy?0:1)+"|"+(pi.crippled?1:0);
             }
             else if (ti instanceof BeltInfo bi) {
                 ret = "|c"+bi.dir.x()+":"+bi.dir.y();
