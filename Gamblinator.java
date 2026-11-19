@@ -299,7 +299,8 @@ public class Gamblinator extends Prog {
         }
 
         public static Hand[] allHands() {
-            return new Hand[]{high, pair, twoPair, triple, straight, flush, fullHouse, quad, straightFlush, five, six, crap};
+            //return new Hand[]{high, pair, twoPair, triple, straight, flush, fullHouse, quad, straightFlush, five, six, crap};
+            return values();
         }
     }
 

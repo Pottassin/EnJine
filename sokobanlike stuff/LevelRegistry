@@ -1,3 +1,6 @@
-TestLevel1:1
-TestLevel2:2
-LevelEditor:-1
+WorldMap:1|0
+BombIntroTest1:2|0
+FireIntroTest1:3|0
+RecursionTest1:4|0
+RecursionTest2:5|0
+LevelEditor:-1|

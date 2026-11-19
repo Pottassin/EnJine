@@ -4,21 +4,19 @@ import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Random;
-import java.util.TreeSet;
-import java.util.HashSet;
-import java.util.ArrayList;
+import java.util.*;
 //import javax.swing.LookAndFeel;
 //import javax.swing.plaf.basic.BasicLookAndFeel;
 import java.lang.Thread;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import enjine.util.*;
 import enjine.geoMath.*;
     
 // look at Area class
 
-// a 'sequence' object to perform a series of functions based of frames / timing would be nice
 public class Prog {
 
     public static Random randomIntGen;
@@ -73,7 +71,7 @@ public class Prog {
             if (s.sim)
                 while (true) {
                     if (freeThread() != null) {
-                        freeThread().set(() -> s.update()).run();
+                        freeThread().set(s::update).run();
                         break;
                     }
                     Thread.onSpinWait();
@@ -467,11 +465,9 @@ public class Prog {
         public void mousePressed(MouseEvent e) {}
         public void mouseReleased(MouseEvent e) {}
         public void update() { /*System.out.println("update");*/ }
-        public void render(Graphics g) {
-            g.setColor(Color.green);
+        public void render(Graphics g) { /*g.setColor(Color.green);
             g.fillRect(0, 0, 100, 200);
-            System.out.println("render");
-        }
+            System.out.println("render");*/ }
 
     }
 
@@ -482,10 +478,19 @@ public class Prog {
     public class TextField extends Script {
         public String field = "";
         public Consumer<String> notify;
+        public Supplier<String> prev;
+        public UpdateCondition updateCondition = UpdateCondition.enter;
+        public boolean override = true;
         public TextField() { sim = false; }
+        public TextField(UpdateCondition uc, boolean o) { sim = false; updateCondition = uc; override = o; }
         public void start() {
             System.out.println("open field");
-            field = "";
+            if (override)
+                field = "";
+            else {
+                field = prev.get();
+                System.out.println(field);
+            }
             sim = true;
             //CameraManager.addToDraw(this, 1);
             KeyDetect.instance.addP(this);
@@ -499,16 +504,19 @@ public class Prog {
 
         public void keyPressed(int e) {
             if (e == KeyEvent.VK_BACK_SPACE) {
-                if (field.length() > 0)
+                if (!field.isEmpty())
                     field = field.substring(0, field.length()-1);
                 System.out.println(field);
             }
             else if (e == KeyEvent.VK_ESCAPE) {
                 destroy();
                 System.out.println("closing field");
+                return;
             }
             else if (e == KeyEvent.VK_ENTER) {
                 notify.accept(field);
+                if (updateCondition == UpdateCondition.enterAndClose)
+                    destroy();
             }
             else {
                 if (KeyEvent.getKeyText(e).length() > 1) return;
@@ -521,6 +529,18 @@ public class Prog {
                 System.out.println("adding "+(""+(char) e).toLowerCase());
                 field += (""+(char) e).toLowerCase();
                 System.out.println(field);
+            }
+            if (updateCondition == UpdateCondition.update)
+                notify.accept(field);
+        }
+
+        public static enum UpdateCondition {
+            enter(0),
+            enterAndClose(1),
+            update(2);
+            int c;
+            UpdateCondition(int condition) {
+                c = condition;
             }
         }
     }
@@ -561,6 +581,68 @@ public class Prog {
                 System.out.println("adding "+(e-48));
                 field = field*10 + (e-48);
                 System.out.println(field);
+            }
+        }
+    }
+
+    //` needs a constructor
+    public class Routine extends Script {
+        public int frames = 0;
+        public boolean repeat;
+        public LinkedNode firstNode;
+        public LinkedNode curNode;
+        public Routine() {
+            repeat = false;
+        }
+
+        /*public Routine() {
+
+        }*/
+
+        public void start() { addToUpdate(this); }
+        public void destroy() { removeToUpdate(this); }
+
+        public void update() {
+            frames++;
+            curNode.tick();
+        }
+
+        public void finish() {
+            if (repeat) {
+                curNode = firstNode;
+            }
+            else {
+                destroy();
+            }
+        }
+
+        public class LinkedNode<c> {
+            public Routine owner;
+            public BiConsumer<c, Integer> func;
+            public LinkedNode<c> next;
+            public c input;
+            public int frameDur;
+            public boolean continuous;
+
+            public LinkedNode(Routine r, BiConsumer<c, Integer> f, LinkedNode<c> n, c i, int dur, boolean c) {
+                owner = r; func = f; next = n; input = i; frameDur = dur; continuous = c;
+            }
+
+            public void tick() {
+                if (owner.frames >= frameDur) {
+                    func.accept(input, frameDur);
+                    owner.frames -= frameDur;
+                    owner.curNode = next;
+                    if (next == null) {
+                        owner.finish();
+                    }
+                    if (next.frameDur >= 0) {
+                        next.tick();
+                    }
+                }
+                else if (continuous) {
+                    func.accept(input, owner.frames);
+                }
             }
         }
     }
