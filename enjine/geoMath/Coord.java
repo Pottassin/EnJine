@@ -6,12 +6,21 @@ import java.util.function.Consumer;
 import enjine.util.*;
 
 public class Coord extends Geometry implements Comparable<Coord> {
+    /*public enum Constants {
+        up(new Coord(0, 1)),
+        down(new Coord(0, -1)),
+        left(new Coord(-1, 0)),
+        right(new Coord(1, 0));
+        public final Coord c;
+        Constants(Coord coord) { c = coord; }
+    }*/
 
     public double x;
     public double y;
 
     public Coord() { x = 0; y = 0; }
     public Coord(double x, double y) { this.x = x; this.y = y; }
+    public Coord(double m) { x = m; y = m; }
     public Coord(Coord copy) { x = copy.x; y = copy.y; }
     public Coord(Point copy) { x = 0; if (copy != null) x = copy.x; y = 0; if (copy != null) y = copy.y; }
 
@@ -44,16 +53,22 @@ public class Coord extends Geometry implements Comparable<Coord> {
 
     public Coord add(Coord c) { return new Coord(x+c.x, y+c.y); }
     public Coord add(double n) { return new Coord(x+n, y+n); }
+    public Coord add(double n1, double n2) { return new Coord(x+n1, y+n2); }
     public Coord subtract(Coord c) { return new Coord(x-c.x, y-c.y); }
     public Coord subtract(double n) { return new Coord(x-n, y-n); }
+    public Coord subtract(double n1, double n2) { return new Coord(x-n1, y-n2); }
     public Coord multiply(Coord c) { return new Coord(x*c.x, y*c.y); }
     public Coord multiply(double n) { return new Coord(x*n, y*n); }
+    public Coord multiply(double n1, double n2) { return new Coord(x*n1, y*n2); }
     public Coord divide(Coord c) { return new Coord(x/c.x, y/c.y); }
     public Coord divide(double n) { return new Coord(x/n, y/n); }
+    public Coord divide(double n1, double n2) { return new Coord(x/n1, y/n2); }
     public Coord pow(Coord c) { return new Coord(Math.pow(x,c.x), Math.pow(y,c.y)); }
     public Coord pow(double n) { return new Coord(Math.pow(x,n), Math.pow(y,n)); }
+    public Coord pow(double n1, double n2) { return new Coord(Math.pow(x,n1), Math.pow(y,n2)); }
     public Coord mod(Coord c) { return new Coord(x%c.x, y%c.y); }
     public Coord mod(double n) { return new Coord(x%n, y%n); }
+    public Coord mod(double n1, double n2) { return new Coord(x%n1, y%n2); }
     public double dotProduct(Coord c) { return x*c.x + y*c.y; }
 
     public double distanceTo(Coord c) {

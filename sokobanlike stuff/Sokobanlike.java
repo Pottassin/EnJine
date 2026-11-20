@@ -15,6 +15,8 @@ import enjine.Prog;
 
 import javax.imageio.ImageIO;
 
+//` ice still doesn't work properly when moving towards something pushed by a conveyer
+
 @SuppressWarnings("WrongPackageStatement")
 public class Sokobanlike extends Prog {
     public static String directory = "sokobanlike stuff/";
@@ -23,14 +25,16 @@ public class Sokobanlike extends Prog {
     public static String savesDirectory = directory+"saved levels/";
     public static File levelReg = new File(directory+"LevelRegistry");
     public static TreeMap<Integer, Level> levels = new TreeMap<Integer, Level>();
+    public static TreeMap<String, Integer> ids = new TreeMap<String, Integer>();
+    public static TreeMap<Integer, Boolean> completeds = new TreeMap<Integer, Boolean>();
 
     public static MainMenu mainMenu;
-    public static LevelSelect levelSelect;
+    //public static LevelSelect levelSelect;
     public static CustomMenu customMenu;
     public static LevelMenu levelMenu;
 
     public enum Sprites {
-        zero(retrieve("0")),
+        /*zero(retrieve("0")),
         one(retrieve("1")),
         two(retrieve("2")),
         three(retrieve("3")),
@@ -39,7 +43,7 @@ public class Sokobanlike extends Prog {
         six(retrieve("6")),
         seven(retrieve("7")),
         eight(retrieve("8")),
-        nine(retrieve("9")),
+        nine(retrieve("9")),*/
         negative(retrieve("Negative")),
         selectedTileTR(retrieve("SelectionTR")),
         selectedTileTL(retrieve("SelectionTL")),
@@ -147,7 +151,9 @@ public class Sokobanlike extends Prog {
         watcherRight3(projectColor(retrieve("WatcherRight"), Color.yellow)),
         watcherRight4(projectColor(retrieve("WatcherRight"), Color.green)),
         watcherRight5(projectColor(retrieve("WatcherRight"), Color.cyan)),
-        watcherRight6(projectColor(retrieve("WatcherRight"), new Color(144, 0, 255)));
+        watcherRight6(projectColor(retrieve("WatcherRight"), new Color(144, 0, 255))),
+        level(retrieve("Level")),
+        unclearedLevel(retrieve("UnclearedLevel"));
         Image i;
         Sprites(Image image) { i = image; }
 
@@ -172,6 +178,23 @@ public class Sokobanlike extends Prog {
                 return (rgb & 0xff000000) | ((int)(grey/255.*dye.getRed()) << 16) | ((int)(grey/255.*dye.getGreen()) << 8) | (int)(grey/255.*dye.getBlue());
             }
         }
+        /*public static class CropFilter extends CropImageFilter {
+            int
+            @Override
+        }*/
+
+        public enum Sheets {
+            text(retrieve("TextSheet"), 16, 16, 19, 5);
+            Image[] sheet;
+            Sheets(BufferedImage i, int w, int h, int numX, int numY) {
+                sheet = new Image[w*h];
+                for (int y = 0; y < numY; y++) {
+                    for (int x = 0; x < numX; x++) {
+                        sheet[x+y*numX] = i.getSubimage(x*w, y*h, w, h);
+                    }
+                }
+            }
+        }
     }
 
     public static void main(String[] args) { new Sokobanlike(); }
@@ -179,23 +202,34 @@ public class Sokobanlike extends Prog {
     public Sokobanlike() {
         super("Sokoban-like", 600, 600);
         new Camera(0,0, 600, 600);
+        new Camera(0,0, 600, 600);
+        new Camera(0,0, 600, 600);
         levels = new TreeMap<Integer, Level>();
         loadLevels();
         mainMenu = new MainMenu();
-        levelSelect = new LevelSelect();
+        //levelSelect = new LevelSelect();
         customMenu = new CustomMenu();
         levelMenu = new LevelMenu();
+        TypeInfo.LevelInfo.field = new TextField(TextField.UpdateCondition.enterAndClose, false);
+        new LevelTitleRenderer();
     }
 
     public void loadLevels() {
         try {
             Scanner regReader = new Scanner(levelReg);
             String line;
+            int levelId;
             while (regReader.hasNext()) {
                 line = regReader.next();
                 try {
-                    if (Integer.parseInt(line.substring(line.indexOf(":")+1)) > 0)
-                        levels.put(Integer.parseInt(line.substring(line.indexOf(":")+1)), buildLevel(line.substring(0,line.indexOf(":"))));
+                    levelId = Integer.parseInt(line.substring(line.indexOf(":")+1, line.indexOf("|")));
+                    if (levelId > 0) {
+                        levels.put(levelId, buildLevel(line.substring(0, line.indexOf(":")), 1));
+                        ids.put(line.substring(0, line.indexOf(":")), levelId);
+                        completeds.put(levelId, Integer.parseInt(line.substring(line.indexOf("|") + 1)) == 1);
+                        levels.get(levelId).id = levelId;
+                        //completeds.put(levelId, Integer.parseInt(line.substring(line.indexOf("|") + 1)) == 1);
+                    }
                 }
                 catch (Exception e){
                     System.out.println("Error Building " +line.substring(0,line.indexOf(":")));
@@ -664,7 +698,7 @@ public class Sokobanlike extends Prog {
         }
 
         public void start() {
-            CameraManager.addToDraw(this, 1);
+            CameraManager.addToDraw(this, 4);
             start.start();
             custom.start();
         }
@@ -672,7 +706,7 @@ public class Sokobanlike extends Prog {
         public void destroy() {
             start.destroy();
             custom.destroy();
-            CameraManager.removeToDraw(this, 1);
+            CameraManager.removeToDraw(this, 4);
         }
 
         public void render(Graphics g) {
@@ -696,7 +730,7 @@ public class Sokobanlike extends Prog {
             boolean isPressed = false;
 
             public void start() {
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 4);
                 addToUpdate(this);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
@@ -706,7 +740,7 @@ public class Sokobanlike extends Prog {
                 removeToUpdate(this);
                 MouseDetect.instance.removeP(this);
                 MouseDetect.instance.removeR(this);
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 4);
             }
 
             public void update() {
@@ -715,7 +749,7 @@ public class Sokobanlike extends Prog {
             }
 
             public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
-            public void mouseReleased(MouseEvent e) { if (isPressed) { mainMenu.destroy(); levelSelect.start(); } }
+            public void mouseReleased(MouseEvent e) { if (isPressed) { mainMenu.destroy(); levels.get(1).start(); /*levelSelect.start();*/ } }
 
             public void render(Graphics g) {
                 if (isSelected && isPressed)
@@ -748,7 +782,7 @@ public class Sokobanlike extends Prog {
             boolean isPressed = false;
 
             public void start() {
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 4);
                 addToUpdate(this);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
@@ -758,7 +792,7 @@ public class Sokobanlike extends Prog {
                 removeToUpdate(this);
                 MouseDetect.instance.removeP(this);
                 MouseDetect.instance.removeR(this);
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 4);
             }
 
             public void update() {
@@ -799,7 +833,7 @@ public class Sokobanlike extends Prog {
         }
 
         public void start() {
-            CameraManager.addToDraw(this, 1);
+            CameraManager.addToDraw(this, 4);
             editor.start();
             load.start();
             back.start();
@@ -809,7 +843,7 @@ public class Sokobanlike extends Prog {
             editor.destroy();
             load.destroy();
             back.destroy();
-            CameraManager.removeToDraw(this, 1);
+            CameraManager.removeToDraw(this, 4);
         }
 
         public void render(Graphics g) {
@@ -833,7 +867,7 @@ public class Sokobanlike extends Prog {
             boolean isPressed = false;
 
             public void start() {
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 4);
                 addToUpdate(this);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
@@ -843,7 +877,7 @@ public class Sokobanlike extends Prog {
                 removeToUpdate(this);
                 MouseDetect.instance.removeP(this);
                 MouseDetect.instance.removeR(this);
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 4);
             }
 
             public void update() {
@@ -895,7 +929,7 @@ public class Sokobanlike extends Prog {
             public LoadButton() { txt = new TextField(); }
 
             public void start() {
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 4);
                 addToUpdate(this);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
@@ -905,7 +939,7 @@ public class Sokobanlike extends Prog {
                 removeToUpdate(this);
                 MouseDetect.instance.removeP(this);
                 MouseDetect.instance.removeR(this);
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 4);
                 txt.destroy();
             }
 
@@ -1028,7 +1062,7 @@ public class Sokobanlike extends Prog {
             boolean isPressed = false;
 
             public void start() {
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 4);
                 addToUpdate(this);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
@@ -1038,7 +1072,7 @@ public class Sokobanlike extends Prog {
                 removeToUpdate(this);
                 MouseDetect.instance.removeP(this);
                 MouseDetect.instance.removeR(this);
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 4);
             }
 
             public void update() {
@@ -1080,12 +1114,46 @@ public class Sokobanlike extends Prog {
         public boolean gameOver = false;
         public boolean gameWon = false;
         public ArrayList<Input> inputStack = new ArrayList<Input>();
+        public Stack<TreeMap<Coord, Tile>> boardChanges = new Stack<TreeMap<Coord, Tile>>();
+        public Stack<TypeInfoContext> infoChanges = new Stack<TypeInfoContext>();
         public boolean isPaused = false;
         public boolean settingUp = false;
         public boolean moveResolveEmpty = false;
+        public boolean resolveMoves = true;
         public Coord offset = new Coord();
+        public int id;
+
+        public Level superLevel;
+
+        Level() {}
+
+        Level(Level l) {
+            file = l.file;
+            grid = new Tile[l.grid.length][l.grid[0].length];
+            for (int x = 0; x < grid[0].length; x++) { for (int y = 0; y < grid.length; y++) { grid[y][x] = new Tile(l.grid[y][x]); } }
+            id = l.id;
+        }
+
+        public Level copy() {
+            return new Level(this);
+        }
 
         public void start() {
+            activeLevel = this;
+            CameraManager.addToDraw(this, 1);
+            KeyDetect.instance.addP(this);
+            settingUp = true;
+            if (this != LevelEditor.instance) {
+                reload();
+            }
+            else {
+                reloadData();
+            }
+            settingUp = false;
+        }
+
+        public void start(Level sup) {
+            superLevel = sup;
             activeLevel = this;
             CameraManager.addToDraw(this, 1);
             KeyDetect.instance.addP(this);
@@ -1104,6 +1172,7 @@ public class Sokobanlike extends Prog {
             gameOver = false;
             isPaused = false;
             TypeInfo.clear();
+            LevelTitleRenderer.instance.destroy();
             /*TypeInfo.PlayerInfo.awake = 0;
             TypeInfo.FlagInfo.numUp = 0;
             if (LevelEditor.instance != null && LevelEditor.instance.hidden) {
@@ -1122,6 +1191,24 @@ public class Sokobanlike extends Prog {
             CameraManager.removeToDraw(this, 1);
             KeyDetect.instance.removeP(this);
             activeLevel = null;
+            LevelTitleRenderer.instance.destroy();
+        }
+
+        public boolean exit() {
+            CameraManager.removeToDraw(this, 1);
+            KeyDetect.instance.removeP(this);
+            LevelTitleRenderer.instance.destroy();
+            if (superLevel == null)
+                activeLevel = null;
+            else {
+                activeLevel = superLevel;
+                CameraManager.addToDraw(superLevel, 1);
+                KeyDetect.instance.addP(superLevel);
+                clearData();
+                superLevel.reloadData();
+                return false;
+            }
+            return true;
         }
 
         public void pause() {
@@ -1135,6 +1222,7 @@ public class Sokobanlike extends Prog {
         }
 
         public void keyPressed(int e) {
+            if (Input.inputOf(e) == null) return;
             if (e == Input.esc.key) {
                 if (isPaused)
                     unpause();
@@ -1154,8 +1242,12 @@ public class Sokobanlike extends Prog {
                 System.out.println("END DEBUG #1 -----------");
                 return;
             }
-            if (isPaused || gameOver || gameWon || Level.activeLevel == LevelEditor.instance) return;
-            if (Input.inputOf(e) == null) return;
+            if (isPaused || Level.activeLevel == LevelEditor.instance) return;
+            if (e == Input.undo.key) {
+                undoMove();
+                return;
+            }
+            if (gameOver || gameWon) return;
             inputStack.add(Input.inputOf(e));
             for (int x = 0; x < grid[0].length; x++) {
                 for (int y = 0; y < grid.length; y++) {
@@ -1178,13 +1270,45 @@ public class Sokobanlike extends Prog {
                 return;
             }
             //System.out.println("\nFirst Check ______________/");
-            resolveMoves();
-            for (int x = 0; x < grid[0].length; x++) {
-                for (int y = 0; y < grid.length; y++) {
-                    grid[y][x].stand(this);
+            if (resolveMoves) {
+                resolveMoves();
+                for (int x = 0; x < grid[0].length; x++) {
+                    for (int y = 0; y < grid.length; y++) {
+                        grid[y][x].stand(this);
+                    }
                 }
             }
+            if (!resolveMoves) {
+                System.out.println("no resolve");
+                for (GridModRequest gmr : moveQueue)
+                    gmr.consume();
+                moveQueue.clear();
+                resolveMoves = true;
+            }
             TypeInfo.BeltInfo.moved.clear();
+        }
+
+        public void undoMove() {
+            if (boardChanges.empty()) {
+                if (superLevel != null) {
+                    destroy();
+                    activeLevel = superLevel;
+                    CameraManager.addToDraw(superLevel, 1);
+                    KeyDetect.instance.addP(superLevel);
+                    clearData();
+                    superLevel.reloadData();
+                    superLevel.undoMove();
+                }
+            }
+            else {
+                gameOver = false;
+                gameWon = false;
+                TreeMap<Coord, Tile> changes = boardChanges.pop();
+                for (Coord c : changes.keySet()) {
+                    grid[c.y()][c.x()] = changes.get(c);
+                }
+                infoChanges.pop().set();
+            }
         }
 
         public void resolveMoves() {
@@ -1193,6 +1317,9 @@ public class Sokobanlike extends Prog {
             HashSet<TypeInst> moved = new HashSet<TypeInst>();
             ArrayList<MoveContext> conseqs = new ArrayList<MoveContext>();
             int iter = 0;
+            TreeMap<Coord, Tile> changes = new TreeMap<Coord, Tile>();
+            boardChanges.add(changes);
+            infoChanges.add(new TypeInfoContext());
             while (true) {
                 iter++;
                 //System.out.println("\nresolve iteration " + iter);
@@ -1215,16 +1342,45 @@ public class Sokobanlike extends Prog {
                     System.out.println("}");*/
                 }
                 boolean superseded;
-                int dirs;
+                GridModRequest[]  dirs;
+                //` didn't implement direction conflict
                 for (int d : allMoves.keySet()) {
                     for (TypeInst ti : moved) {
                         superseded = false;
-                        int dir = 0;
+                        dirs = new GridModRequest[4];
                         for (GridModRequest gmr : ti.requests) {
                             if (!gmr.isConsumed) {
-                                if (gmr.move.depth < d) { superseded = true; /*System.out.println("found higher priority move");*/ }
-                                else if (gmr.move.depth == d) { if (superseded) { /*System.out.println("superseded");*/ gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ } superseded = true; }
-                                else if (superseded) {  /*System.out.println("superseded");*/ gmr.supersede(); /*coords.remove(gmr.move.tile.pos);*/ }
+                                if (gmr.move.dir.x == 1) {
+                                    dirs[0] = gmr;
+                                    if (dirs[1] != null) {
+                                        gmr.consume();
+                                        dirs[1].consume();
+                                    }
+                                }
+                                else if (gmr.move.dir.x == -1) {
+                                    dirs[1] = gmr;
+                                    if (dirs[0] != null) {
+                                        gmr.consume();
+                                        dirs[0].consume();
+                                    }
+                                }
+                                else if (gmr.move.dir.y == 1) {
+                                    dirs[2] = gmr;
+                                    if (dirs[3] != null) {
+                                        gmr.consume();
+                                        dirs[3].consume();
+                                    }
+                                }
+                                else if (gmr.move.dir.y == -1) {
+                                    dirs[3] = gmr;
+                                    if (dirs[2] != null) {
+                                        gmr.consume();
+                                        dirs[2].consume();
+                                    }
+                                }
+                                if (gmr.move.depth < d) { superseded = true; }
+                                else if (gmr.move.depth == d) { if (superseded) { gmr.supersede(); } superseded = true; }
+                                else if (superseded) { gmr.supersede(); }
                             }
                         }
                     }
@@ -1266,9 +1422,13 @@ public class Sokobanlike extends Prog {
                             //System.out.println("Executing move: " + r);
                             if (r.move.srcTile.pos != null) {
                                 if (r.move.srcTile.types.contains(r.move.srcType)) {
+                                    if (!changes.containsKey(r.move.tile.pos))
+                                        changes.put(r.move.tile.pos, r.move.tile.copy());
+                                    if (!changes.containsKey(r.move.srcTile.pos))
+                                        changes.put(r.move.srcTile.pos, r.move.srcTile.copy());
                                     r.move.srcTile.types.remove(r.move.srcType);
                                     r.move.tile.types.add(r.move.srcType);
-                                    MoveContext pushC = new MoveContext(r.move.curLevel, r.move.tile, r.move.srcType, null, null, r.move.dir, r.move.max, r.move.depth);
+                                    MoveContext pushC = new MoveContext(r.move.curLevel, r.move.tile, r.move.srcType, null, null, r.move.dir, r.move.max, r.move.depth, r);
                                     r.move.tile.push(pushC);
                                     r.move.srcTile.exit(pushC);
                                     if (r.cascadeContext != null)
@@ -1280,21 +1440,27 @@ public class Sokobanlike extends Prog {
                                 }
                             } else {
                                 grid[r.move.tile.pos.y()][r.move.tile.pos.x()].types.add(r.move.srcType);
+                                if (!changes.containsKey(r.move.tile.pos))
+                                    changes.put(r.move.tile.pos, new Tile(r.move.tile));
                             }
                         }
                     }
                 }
                 allMoves.clear();
                 for (MoveContext mc : conseqs) {
-                    if (grid[mc.tile.pos.y()][mc.tile.pos.x()].attemptPush(mc)) {
-                        mc.srcType.requests.add(mc.request);
-                        addMove(mc.request);
+                    if (mc.depth > 0) {
+                        if (grid[mc.tile.pos.y()][mc.tile.pos.x()].attemptPush(mc)) {
+                            mc.srcType.requests.add(mc.request);
+                            addMove(mc.request);
+                        }
                     }
                 }
                 conseqs.clear();
                 moved.clear();
                 moveResolveEmpty = moveQueue.isEmpty();
                 for (Context c : removeQueue) {
+                    if (!changes.containsKey(c.srcTile.pos))
+                        changes.put(c.srcTile.pos, new Tile(c.srcTile));
                     c.srcTile.types.remove(c.srcType);
                 }
                 removeQueue.clear();
@@ -1339,6 +1505,7 @@ public class Sokobanlike extends Prog {
 
         public void reload() {
             clearData();
+            settingUp = true;
             try {
                 Scanner levelReader = new Scanner(file);
                 String lrl = levelReader.next();
@@ -1383,6 +1550,7 @@ public class Sokobanlike extends Prog {
                     grid[y][x].stand(this);
                 }
             }
+            settingUp = false;
         }
 
         public void reloadData() {
@@ -1420,9 +1588,21 @@ public class Sokobanlike extends Prog {
         public void addMove(GridModRequest gmr) { moveQueue.add(gmr); /*gmr.move.srcType.addRequest(gmr);*/ }
 
         public void winGame() {
-            gameWon = true;
-            isPaused = true;
-            levelMenu.start();
+            completeds.put(id, true);
+            if (superLevel == null) {
+                gameWon = true;
+                isPaused = true;
+                levelMenu.start();
+            }
+            else {
+                destroy();
+                //superLevel.start();
+                activeLevel = superLevel;
+                CameraManager.addToDraw(superLevel, 1);
+                KeyDetect.instance.addP(superLevel);
+                clearData();
+                superLevel.reloadData();
+            }
         }
 
         public boolean onBoard(Coord c) {
@@ -1602,7 +1782,7 @@ public class Sokobanlike extends Prog {
 
         public class TileDisplay extends Script {
             public static TileDisplay instance;
-            public Coord pos = new Coord(0,50);
+            public Coord pos = new Coord(0,0);
             public Tile t;
             public RectCollider grabber = new RectCollider(new Coord(0, 12), new PCoord(0, 10), 12);
             public RectCollider typePane = new RectCollider(new Coord(10, 12), new PCoord(0, 0), 12);
@@ -1612,7 +1792,7 @@ public class Sokobanlike extends Prog {
             public TileDisplay() { instance = this; }
 
             public void start() {
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 2);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
                 addToUpdate(this);
@@ -1620,7 +1800,7 @@ public class Sokobanlike extends Prog {
             }
 
             public void destroy() {
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 2);
                 MouseDetect.instance.removeP(this);
                 MouseDetect.instance.removeR(this);
                 removeToUpdate(this);
@@ -1700,7 +1880,7 @@ public class Sokobanlike extends Prog {
         public class TileInventory extends Script {
 
             public static TileInventory instance;
-            public Coord pos = new Coord(0,50);
+            public Coord pos = new Coord(0,0);
             public RectCollider grabber = new RectCollider(new Coord(0, 12), new PCoord(0, 10), 12);
             public RectCollider typePane = new RectCollider(new Coord(10, 12), new PCoord(0, 0), 12);
             boolean followMouse = false;
@@ -1716,7 +1896,7 @@ public class Sokobanlike extends Prog {
                     typePane.length.d = 22*TileType.tileTypes().length;
                 else
                     typePane.length.d = 22*tpr;
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 2);
                 MouseDetect.instance.addP(this);
                 MouseDetect.instance.addR(this);
                 KeyDetect.instance.addP(this);
@@ -1725,7 +1905,7 @@ public class Sokobanlike extends Prog {
             }
 
             public void destroy() {
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 2);
                 MouseDetect.instance.removeP(this);
                 MouseDetect.instance.removeR(this);
                 KeyDetect.instance.removeP(this);
@@ -1803,13 +1983,13 @@ public class Sokobanlike extends Prog {
                 ii = new InventoryIcon();
             }
             public void start() {
-                CameraManager.addToDraw(this);
+                CameraManager.addToDraw(this, 2);
                 di.start();
                 ii.start();
             }
 
             public void destroy() {
-                CameraManager.removeToDraw(this);
+                CameraManager.removeToDraw(this, 2);
                 di.destroy();
                 ii.destroy();
             }
@@ -1952,7 +2132,7 @@ public class Sokobanlike extends Prog {
         }
     }
 
-    public class LevelSelect extends Script {
+    /*public class LevelSelect extends Script {
         public static ResumeButton resume;
         public static ExitButton exit;
 
@@ -2072,43 +2252,50 @@ public class Sokobanlike extends Prog {
                 g.drawString("Main Menu", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
             }
         }
-    }
+    }*/
     public class LevelMenu extends Script {
         public static ResumeButton resume;
         public static RestartButton restart;
         public static ExitButton exit;
+        public static EscapeButton escape;
         public static LoadButton load;
         public static SaveButton save;
         public static SaveAsButton saveAs;
         public static TestPlayButton testPlay;
         public static WinScreen winScreen;
 
-        public LevelMenu() { resume = new ResumeButton(); restart = new RestartButton(); exit = new ExitButton(); save = new SaveButton(); saveAs = new SaveAsButton(); load = new LoadButton(); testPlay = new TestPlayButton(); }
+        public LevelMenu() { resume = new ResumeButton(); restart = new RestartButton(); escape = new EscapeButton(); exit = new ExitButton(); save = new SaveButton(); saveAs = new SaveAsButton(); load = new LoadButton(); testPlay = new TestPlayButton(); }
 
         public void start() {
             resume.start();
             restart.start();
-            exit.start();
+            escape.start();
             if (Level.activeLevel == LevelEditor.instance) {
                 save.start();
                 saveAs.start();
                 load.start();
                 testPlay.start();
             }
-            CameraManager.addToDraw(this, 1);
+            else {
+                exit.start();
+            }
+            CameraManager.addToDraw(this, 4);
         }
 
         public void destroy() {
             resume.destroy();
             restart.destroy();
-            exit.destroy();
+            escape.destroy();
             if (Level.activeLevel == LevelEditor.instance) {
                 save.destroy();
                 saveAs.destroy();
                 load.destroy();
                 testPlay.destroy();
             }
-            CameraManager.removeToDraw(this, 1);
+            else {
+                exit.destroy();
+            }
+            CameraManager.removeToDraw(this, 4);
         }
 
         public void render(Graphics g) {
@@ -2117,17 +2304,18 @@ public class Sokobanlike extends Prog {
                 g.fillRect(0,0,250, 520);
                 resume.render(g);
                 restart.render(g);
-                exit.render(g);
+                escape.render(g);
                 save.render(g);
                 saveAs.render(g);
                 load.render(g);
                 testPlay.render(g);
             }
             else {
-                g.fillRect(0,0,250, 240);
+                g.fillRect(0,0,250, 310);
                 resume.render(g);
                 restart.render(g);
                 exit.render(g);
+                escape.render(g);
             }
         }
 
@@ -2280,20 +2468,24 @@ public class Sokobanlike extends Prog {
 
             public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
             public void mouseReleased(MouseEvent e) { if (isPressed) {
-                Level.activeLevel.unpause();
-                if (Level.activeLevel == LevelEditor.instance)
+                Level curLevel = Level.activeLevel;
+                curLevel.unpause();
+                if (curLevel == LevelEditor.instance)
                     customMenu.start();
                 else {
                     if (LevelEditor.instance != null && LevelEditor.instance.hidden) {
-                        Level.activeLevel.destroy();
-                        LevelEditor.instance.start();
-                        return;
+                        if (curLevel.exit())
+                            LevelEditor.instance.start();
+                        else
+                            curLevel.superLevel.undoMove();
                     }
                     else {
-                        levelSelect.start();
+                        if (curLevel.exit())
+                            mainMenu.start();
+                        else
+                            curLevel.superLevel.undoMove();
                     }
                 }
-                Level.activeLevel.destroy();
             } }
 
             public void render(Graphics g) {
@@ -2305,9 +2497,84 @@ public class Sokobanlike extends Prog {
                     g.setColor(Minesweeper.MainMenu.StartButton.ColorState.rest.c);
                 g.fillRect((int) coll.og.x, (int) (coll.og.y - coll.width), (int) coll.length.d, (int) coll.width * 2);
                 g.setColor(Color.black);
-                if (Level.activeLevel == LevelEditor.instance)
-                    g.drawString("Exit Editor", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
+                g.drawString("Exit Current Level", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
+            }
+        }
+
+        public class EscapeButton extends Script {
+
+            RectCollider coll = new RectCollider(new Coord(50, 260), new PCoord(0, 150), 20);
+
+            public enum ColorState {
+                rest(new Color(0, 255, 0)),
+                hover(new Color(0, 225, 0)),
+                press(new Color(200, 20, 0));
+                Color c;
+                ColorState(Color c) { this.c = c; }
+            }
+
+            public void start() {
+                addToUpdate(this);
+                MouseDetect.instance.addP(this);
+                MouseDetect.instance.addR(this);
+            }
+
+            public void destroy() {
+                removeToUpdate(this);
+                MouseDetect.instance.removeP(this);
+                MouseDetect.instance.removeR(this);
+            }
+
+            boolean isSelected = false;
+            boolean isPressed = false;
+
+            public void update() {
+                if (Level.activeLevel == LevelEditor.instance) {
+                    isSelected = coll.isColliding(new PointCollider(MouseDetect.instance.mousePos().add(0, 70)));
+                }
                 else {
+                    isSelected = coll.isColliding(new PointCollider(MouseDetect.instance.mousePos()));
+                }
+                if (!isSelected) isPressed = false;
+            }
+
+            public void mousePressed(MouseEvent e) { if (isSelected) isPressed = true; }
+            public void mouseReleased(MouseEvent e) { if (isPressed) {
+                Level curLevel = Level.activeLevel;
+                curLevel.unpause();
+                if (curLevel == LevelEditor.instance)
+                    customMenu.start();
+                else {
+                    if (LevelEditor.instance != null && LevelEditor.instance.hidden) {
+                        curLevel.destroy();
+                        LevelEditor.instance.start();
+                        return;
+                    }
+                    else {
+                        if (curLevel.superLevel != null)
+                            curLevel.superLevel.start();
+                        else
+                            mainMenu.start();
+                    }
+                }
+                curLevel.destroy();
+            } }
+
+            public void render(Graphics g) {
+                if (isSelected && isPressed)
+                    g.setColor(Minesweeper.MainMenu.StartButton.ColorState.press.c);
+                else if (isSelected)
+                    g.setColor(Minesweeper.MainMenu.StartButton.ColorState.hover.c);
+                else
+                    g.setColor(Minesweeper.MainMenu.StartButton.ColorState.rest.c);
+                if (Level.activeLevel == LevelEditor.instance) {
+                    g.fillRect((int) coll.og.x, (int) (coll.og.y - coll.width) - 70, (int) coll.length.d, (int) coll.width * 2);
+                    g.setColor(Color.black);
+                    g.drawString("Exit Editor", coll.og.x() + 10, (int) (coll.og.y - coll.width) - 40);
+                }
+                else {
+                    g.fillRect((int) coll.og.x, (int) (coll.og.y - coll.width), (int) coll.length.d, (int) coll.width * 2);
+                    g.setColor(Color.black);
                     if (LevelEditor.instance != null && LevelEditor.instance.hidden)
                         g.drawString("Return to Editor", coll.og.x() + 10, (int) (coll.og.y - coll.width) + 30);
                     else
@@ -2738,14 +3005,14 @@ public class Sokobanlike extends Prog {
                 sim = true;
                 framesActive = 0;
                 addToUpdate(this);
-                CameraManager.addToDraw(this, 1);
+                CameraManager.addToDraw(this, 2);
             }
 
             public void destroy() {
                 sim = true;
                 framesActive = 0;
                 removeToUpdate(this);
-                CameraManager.removeToDraw(this, 1);
+                CameraManager.removeToDraw(this, 2);
             }
 
             public void update() {
@@ -2774,7 +3041,13 @@ public class Sokobanlike extends Prog {
 
         public Tile(Tile t) {
             pos = new Coord(t.pos);
-            types = new ArrayList<>(t.types);
+            for (TypeInst ti : t.types) {
+                types.add(new TypeInst(ti.tt, ti.ti));
+            }
+        }
+
+        public Tile copy() {
+            return new Tile(this);
         }
 
         public boolean attemptPull(MoveContext c) {
@@ -2872,6 +3145,29 @@ public class Sokobanlike extends Prog {
                 ret += ti.tt + ", ";
             }
             return pos + " with " + ret;
+        }
+    }
+    public class LevelTitleRenderer extends Script {
+        public static LevelTitleRenderer instance;
+        public TypeInfo.LevelInfo target;
+
+        //` let TypeInsts track position
+        public Coord pos;
+        public Level level;
+        public LevelTitleRenderer() {
+            instance = this; sim = false;
+        }
+        public void set(TypeInfo.LevelInfo li, Coord c, Level l) {
+            target = li;
+            pos = c;
+            level = l;
+        }
+        public void start() { CameraManager.addToDraw(this, 2); sim = true; }
+
+        public void destroy() { CameraManager.removeToDraw(this, 2); sim = false; }
+
+        public void render(Graphics g) {
+            renderString(new Coord(pos.x() * 20 + level.offset.x() - 5*target.levelName.length(), pos.y() * 20 + level.offset.y() - 30), new Coord(10*target.levelName.length(), 10), target.levelName, g);
         }
     }
     public enum TileType {
@@ -3186,7 +3482,7 @@ public class Sokobanlike extends Prog {
                     g.drawImage(Sprites.bombLit.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
                 else
                     g.drawImage(Sprites.bomb.i, c.srcTile.pos.x()*20 + c.off.x(), c.srcTile.pos.y()*20 + c.off.y(), 20, 20, null);
-                renderNumbers(c.srcTile.pos.multiply(20).add(5), new Coord(10, 10), bi.countdown, g);
+                renderNumbers(c.srcTile.pos.multiply(20).add(5).add(c.off), new Coord(10, 10), bi.countdown, g);
             }
             else {
                 if (bi.isLit)
@@ -3358,7 +3654,27 @@ public class Sokobanlike extends Prog {
                     }
                 }
             }
-        });
+        }),
+        level(16,
+               GenericInput.checkOpenLevel.func, GenericHold.attemptOpenTitle.func, GenericHold.ignore.func,
+               GenericMove.allow.func, GenericMove.attemptOpenLevel.func, GenericMove.allow.func, GenericMove.allow.func,
+               GenericMove.allow.func, GenericMove.allow.func, GenericMove.allow.func,
+               GenericMove.ignore.func, GenericMove.ignore.func, (Graphics g, RenderContext c) -> {
+            TypeInfo.LevelInfo li = (TypeInfo.LevelInfo) c.srcType.ti;
+            if (c.c == null) {
+                if (ids.containsKey(li.levelName)) {
+                    if (completeds.get(ids.get(li.levelName)))
+                        g.drawImage(Sprites.level.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                    else
+                        g.drawImage(Sprites.unclearedLevel.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+                }
+                else
+                    g.drawImage(Sprites.level.i, c.srcTile.pos.x() * 20 + c.off.x(), c.srcTile.pos.y() * 20 + c.off.y(), 20, 20, null);
+            }
+            else
+                g.drawImage(Sprites.level.i, c.c.x(), c.c.y(), 20, 20, null);
+        })
+        ;
         public Function<InputContext, Boolean> playerInput;
         public Function<Context, Boolean> stand;
         public Function<Context, Boolean> moveResolveCycle;
@@ -3391,11 +3707,12 @@ public class Sokobanlike extends Prog {
         }
 
         public static TileType tileTypeOf(int id) {
-            for (TileType t : tileTypes()) { if (t.id == id) return t; }
+            for (TileType t : values()) { if (t.id == id) return t; }
             return null;
         }
         public static TileType[] tileTypes() {
-            return new TileType[]{empty, wall, box, player, belt, ice, gate, button, spikes, toggleSpikes, bomb, fire, eternalFire, flag, paster, watcher};
+            //return new TileType[]{empty, wall, box, player, belt, ice, gate, button, spikes, toggleSpikes, bomb, fire, eternalFire, flag, paster, watcher, level};
+            return values();
         }
         public static enum GenericInput {
             follow((InputContext c) -> {
@@ -3432,6 +3749,8 @@ public class Sokobanlike extends Prog {
             }),
             listen((InputContext c) -> {return true;}),
             ignore((InputContext c) -> {return false;}),
+
+            //` feels like this should be moved to GenericHold
             checkBomb((InputContext c) -> {
                 TypeInfo.BombInfo bi = (TypeInfo.BombInfo) c.srcType.ti;
                 if (bi.countdown <= 0 && bi.isLit) {
@@ -3477,6 +3796,19 @@ public class Sokobanlike extends Prog {
                     return true;
                 }
                 return false;
+            }),
+            checkOpenLevel((InputContext c) -> {
+                TypeInfo.LevelInfo li = (TypeInfo.LevelInfo) c.srcType.ti;
+                if (li.renderTitle) {
+                    if (c.input == Input.wait) {
+                        //LevelTitleRenderer.instance.destroy();
+                        c.curLevel.resolveMoves = false;
+                        c.curLevel.destroy();
+                        levels.get(ids.get(li.levelName)).copy().start(c.curLevel);
+                        return true;
+                    }
+                }
+                return false;
             });
             public Function<InputContext, Boolean> func;
             GenericInput(Function<InputContext, Boolean> f) { func = f; }
@@ -3485,7 +3817,6 @@ public class Sokobanlike extends Prog {
             allow((MoveContext c) -> {return true;}),
             check((MoveContext c) -> {
                 if (c.type.ti instanceof TypeInfo.GateInfo gi) {
-                    System.out.println(TypeInfo.GateInfo.states.get(gi.id) + ", " + gi.not);
                     return TypeInfo.GateInfo.states.get(gi.id) != gi.not;
                 }
                 return false;
@@ -3533,26 +3864,19 @@ public class Sokobanlike extends Prog {
             block((MoveContext c) -> {return false;}),
             hold((MoveContext c) -> {
                 if (c.max == -1) return false;
-                System.out.println("Check Hold\n");
                 if (c.type.ti instanceof TypeInfo.ToggleInfo ti) {
                     if (ti.on) return true;
-                    System.out.println("Hold Button\n");
                     ti.on = true;
-                    TypeInfo.GateInfo.states.put(ti.id, true);
+                    //TypeInfo.GateInfo.states.put(ti.id, true);
                     TypeInfo.ToggleInfo.helds.put(ti.id, TypeInfo.ToggleInfo.helds.get(ti.id)+1);
                 }
                 checkToggles();
                 return true; }),
             unhold((MoveContext c) -> {
                 if (c.max == -1) return false;
-                System.out.println("Check Unhold\n");
                 if (c.type.ti instanceof TypeInfo.ToggleInfo ti) {
                     if (!ti.on) return false;
-                    System.out.println("Off Button\n");
                     ti.on = false;
-                    if (TypeInfo.ToggleInfo.helds.get(ti.id) <= 1) {
-                        TypeInfo.GateInfo.states.put(ti.id, false);
-                    }
                     TypeInfo.ToggleInfo.helds.put(ti.id, TypeInfo.ToggleInfo.helds.get(ti.id)-1);
                 }
                 checkToggles();
@@ -3560,9 +3884,10 @@ public class Sokobanlike extends Prog {
             stab((MoveContext c) -> {
                 if (c.max == -1) return false;
                 if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
-                    c.curLevel.gameOver = true;
-                    pi.sleepy = true;
                     TypeInfo.PlayerInfo.awake--;
+                    pi.sleepy = true;
+                    if (TypeInfo.PlayerInfo.awake <= 0)
+                        c.curLevel.gameOver = true;
                 }
                 return true;
             }),
@@ -3570,7 +3895,6 @@ public class Sokobanlike extends Prog {
                 if (c.max == -1) return false;
                 if (c.srcType.ti instanceof TypeInfo.PlayerInfo pi) {
                     if (c.type.ti instanceof TypeInfo.GateInfo gi) {
-                        System.out.println(c.tile + ", on = " + TypeInfo.GateInfo.states.get(gi.id));
                         if (TypeInfo.GateInfo.states.get(gi.id) == gi.not) {
                             pi.sleepy = true;
                             TypeInfo.PlayerInfo.awake--;
@@ -3598,8 +3922,21 @@ public class Sokobanlike extends Prog {
                     ti.tt = c.srcType.tt;
                     ti.ti = c.srcType.ti;
                     pi.onCool = true;*/
-                    for (TypeInst ti : c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1].types.reversed()) {
+                    Tile tile = c.curLevel.grid[c.tile.pos.y()][c.tile.pos.x()+1];
+                    //for (int x = tile.types.size()-1; x >= 0; x--) {
+                    for (TypeInst ti : tile.types.reversed()) {
                         if (ti.tt.attemptPush != line.func) continue;
+                        System.out.println("cur coords: ");
+                        for (Coord pos : c.curLevel.boardChanges.peek().keySet())
+                            System.out.println(pos);
+                        if (!c.curLevel.boardChanges.peek().containsKey(tile.pos)) {
+                            c.curLevel.boardChanges.peek().put(tile.pos, tile.copy());
+                        }
+                        System.out.println("post coords: ");
+                        for (Coord pos : c.curLevel.boardChanges.peek().keySet())
+                            System.out.println(pos);
+                        //tile.types.remove(x);
+                        //tile.types.add(x, c.srcType);
                         ti.tt = c.srcType.tt;
                         ti.ti = c.srcType.ti;
                         pi.onCool = true;
@@ -3607,6 +3944,27 @@ public class Sokobanlike extends Prog {
                     }
                 }
                 return true;
+            }),
+            attemptOpenLevel((MoveContext c) -> {
+                //System.out.println("attempt open");
+                if (c.srcType.tt == TileType.player) {
+                    TypeInfo.LevelInfo li = (TypeInfo.LevelInfo) c.type.ti;
+                    if (!ids.containsKey(li.levelName)) {
+                        c.request.cascadeContext = c.newMoveContext(c.curLevel, null, null, null, null, null, -1, -1);
+                        return false;
+                    }
+                    int id = ids.get(li.levelName);
+                    if (completeds.get(id)) {
+                        c.request.cascadeContext = c.newMoveContext(c.curLevel, null, null, null, null, null, -1, -1);
+                    }
+                    else {
+                        c.request.cascadeContext = c.newMoveContext(c.curLevel, null, null, null, null, null, -1, -1);
+                        c.curLevel.destroy();
+                        levels.get(id).copy().start(c.curLevel);
+                    }
+                    return true;
+                }
+                return false;
             });
             public Function<MoveContext, Boolean> func;
             GenericMove(Function<MoveContext, Boolean> f) { func = f; }
@@ -3615,7 +3973,7 @@ public class Sokobanlike extends Prog {
             listen((Context c) -> {return true;}),
             ignore((Context c) -> {return false;}),
             checkStab((Context c) -> {
-                if (c.curLevel.moveResolveEmpty) return false;
+                if (c.curLevel.settingUp) return false;
                 if (c.srcType.ti instanceof TypeInfo.GateInfo gi) {
                     if (TypeInfo.GateInfo.states.get(gi.id) != gi.not) return false;
                 }
@@ -3625,6 +3983,8 @@ public class Sokobanlike extends Prog {
                     if (ti.tt == TileType.player) {
                         for (GridModRequest gmr : c.curLevel.moveQueue) {
                             if (gmr.move.srcType == ti) {
+                                if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                                    c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());
                                 if (!((TypeInfo.PlayerInfo) ti.ti).sleepy) {
                                     ((TypeInfo.PlayerInfo) ti.ti).sleepy = true;
                                     TypeInfo.PlayerInfo.awake--;
@@ -3655,6 +4015,8 @@ public class Sokobanlike extends Prog {
                 for (TypeInst ti : c.srcTile.types) {
                     if (ti.tt == TileType.player) {
                         if (! ((TypeInfo.PlayerInfo)ti.ti).sleepy) {
+                            if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                                c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());
                             ((TypeInfo.PlayerInfo) ti.ti).sleepy = true;
                             TypeInfo.PlayerInfo.awake--;
                         }
@@ -3663,14 +4025,19 @@ public class Sokobanlike extends Prog {
                 return true;
             }),
             checkBurn((Context c) -> {
+                if (c.curLevel.settingUp) return false;
                 boolean doRemove = c.srcType.tt == TileType.fire;
                 for (TypeInst ti : c.srcTile.types) {
                     if (ti.ti instanceof TypeInfo.PlayerInfo pi) {
+                        if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                            c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());
                         if (!pi.sleepy)
                             TypeInfo.PlayerInfo.awake--;
                         pi.sleepy = true;
                         if (doRemove) { doRemove = false; c.curLevel.removeQueue.add(c.newContext(c.curLevel, c.srcTile, c.srcType)); }
                     } else if (ti.ti instanceof TypeInfo.BombInfo bi) {
+                        if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                            c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());
                         if (!bi.isLit) bi.countdown++;
                         bi.isLit = true;
                         if (doRemove) { doRemove = false; c.curLevel.removeQueue.add(c.newContext(c.curLevel, c.srcTile, c.srcType)); }
@@ -3679,15 +4046,22 @@ public class Sokobanlike extends Prog {
                 return false;
             }),
             tickBomb((Context c) -> {
+                if (c.curLevel.settingUp) return false;
                 TypeInfo.BombInfo bi = (TypeInfo.BombInfo) c.srcType.ti;
                 if (bi.isLit) {
+                    if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                        c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());
                     bi.countdown--;
                 }
                 return false;
             }),
             checkFlag((Context c) -> {
+                if (c.curLevel.settingUp) return false;
                 TypeInfo.FlagInfo fi = (TypeInfo.FlagInfo) c.srcType.ti;
                 boolean wasUp = fi.isUp;
+                if (!c.curLevel.boardChanges.isEmpty())
+                    if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                        c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());
                 fi.isUp = false;
                 for (TypeInst ti : c.srcTile.types) {
                     if (ti.tt == TileType.player) {
@@ -3697,7 +4071,7 @@ public class Sokobanlike extends Prog {
                 }
                 if (fi.isUp && !wasUp) {
                     TypeInfo.FlagInfo.numUp++;
-                    if (TypeInfo.FlagInfo.numUp == 1) {
+                    if (TypeInfo.FlagInfo.numUp >= 1) {
                         c.curLevel.winGame();
                     }
                 }
@@ -3728,7 +4102,7 @@ public class Sokobanlike extends Prog {
                     if (!TypeInfo.BeltInfo.moved.contains(ti)) {
                         //System.out.println("Push thingy: "+ti.tt);
                         TypeInfo.BeltInfo.moved.add(ti);
-                        GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, c.srcTile, ti, ((TypeInfo.BeltInfo) c.srcType.ti).dir, 2, -1));
+                        GridModRequest gmr = c.curLevel.getMove(c.newMoveContext(c.curLevel, c.srcTile, c.srcType, c.srcTile, ti, ((TypeInfo.BeltInfo) c.srcType.ti).dir, 2, 0));
                         gmr.move.src = "from belt";
                         if (!ti.tt.attemptPush.apply(gmr.move)) return false;
                         for (GridModRequest subGmr : gmr.queue) {
@@ -3741,12 +4115,17 @@ public class Sokobanlike extends Prog {
             }),
             checkHold((Context c) -> {
                 if (!c.curLevel.settingUp) return false;
+                TypeInfo.ToggleInfo tgi = (TypeInfo.ToggleInfo) c.srcType.ti;
+                /*if (!c.curLevel.boardChanges.isEmpty())
+                    if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                        c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());*/
                 for (TypeInst ti : c.curLevel.grid[c.srcTile.pos.y()][c.srcTile.pos.x()].types.reversed()) {
-                    if (ti.tt == button) break;
+                    if (ti.tt == button) { tgi.on = false; break; }
                     else {
-                        TypeInfo.ToggleInfo tgi = (TypeInfo.ToggleInfo) c.srcType.ti;
                         TypeInfo.ToggleInfo.helds.put(tgi.id, TypeInfo.ToggleInfo.helds.get(tgi.id)+1);
                         TypeInfo.GateInfo.states.put(tgi.id, true);
+                        tgi.on = true;
+                        break;
                     }
                 }
                 checkToggles();
@@ -3755,6 +4134,8 @@ public class Sokobanlike extends Prog {
             checkWatch((Context c) -> {
                 TypeInfo.WatcherInfo wi = (TypeInfo.WatcherInfo) c.srcType.ti;
                 boolean wasActive = wi.on;
+                if (!c.curLevel.boardChanges.peek().containsKey(c.srcTile.pos))
+                    c.curLevel.boardChanges.peek().put(c.srcTile.pos, c.srcTile.copy());
                 wi.gaze.clear();
                 if (c.srcTile.types.getLast().tt == TileType.player) {
                     wi.on = true;
@@ -3825,6 +4206,24 @@ public class Sokobanlike extends Prog {
                 }
                 checkToggles();
                 return true;
+            }),
+            attemptOpenTitle((Context c) -> {
+                TypeInfo.LevelInfo li = (TypeInfo.LevelInfo) c.srcType.ti;
+                if (!ids.containsKey(li.levelName)) return false;
+                if (!completeds.get(ids.get(li.levelName))) return false;
+                for (TypeInst ti : c.srcTile.types) {
+                    if (ti.tt == player) {
+                        li.renderTitle = true;
+                        LevelTitleRenderer.instance.set(li, c.srcTile.pos, c.curLevel);
+                        if (!LevelTitleRenderer.instance.sim)
+                            LevelTitleRenderer.instance.start();
+                        return true;
+                    }
+                }
+                li.renderTitle = false;
+                if (LevelTitleRenderer.instance.target == li)
+                    LevelTitleRenderer.instance.destroy();
+                return false;
             });
             public Function<Context, Boolean> func;
             GenericHold(Function<Context, Boolean> f) { func = f; }
@@ -3833,8 +4232,9 @@ public class Sokobanlike extends Prog {
 
     public static void checkToggles() {
         for (int x = 0; x < 6; x++) {
-            if (TypeInfo.ToggleInfo.helds.get(x) != null)
+            if (TypeInfo.ToggleInfo.helds.get(x) != null) {
                 TypeInfo.GateInfo.states.put(x, TypeInfo.ToggleInfo.helds.get(x) > 0);
+            }
         }
     }
 
@@ -3853,12 +4253,9 @@ public class Sokobanlike extends Prog {
         }
 
         public static Input inputOf(int e) {
-            if (e == up.key) return up;
-            if (e == down.key) return down;
-            if (e == left.key) return left;
-            if (e == right.key) return right;
-            if (e == wait.key) return wait;
-            if (e == esc.key) return esc;
+            for (Input i : values()) {
+                if (i.key == e) return i;
+            }
             return null;
         }
     }
@@ -3917,7 +4314,7 @@ public class Sokobanlike extends Prog {
         public TypeInfo ti;
         public TileType tt;
         public TypeInst(TileType tt) { this.tt = tt; ti = new TypeInfo(); }
-        public TypeInst(TileType tt, TypeInfo ti) { this.tt = tt; this.ti = ti; }
+        public TypeInst(TileType tt, TypeInfo ti) { this.tt = tt; this.ti = ti.copy(); }
 
         public void addRequest(GridModRequest gmr) {
             //System.out.println("Adding request to " + this + " " + gmr.move.src);
@@ -3962,6 +4359,19 @@ public class Sokobanlike extends Prog {
                 dir = d;
             }
 
+            public PlayerInfo(Coord d, boolean a, boolean c, boolean update) {
+                sleepy = !a;
+                if (a && update)
+                    awake++;
+                crippled = c;
+                dir = d;
+            }
+
+            @Override
+            public TypeInfo copy() {
+                return new PlayerInfo(dir, !sleepy, crippled, false);
+            }
+
             @Override
             public void nudge(int i) {
                 switch (i) {
@@ -3984,6 +4394,15 @@ public class Sokobanlike extends Prog {
 
             public BeltInfo(Coord d) {
                 dir = d;
+            }
+
+            public BeltInfo(Coord d, boolean update) {
+                dir = d;
+            }
+
+            @Override
+            public TypeInfo copy() {
+                return new BeltInfo(dir, false);
             }
 
             @Override
@@ -4010,6 +4429,18 @@ public class Sokobanlike extends Prog {
                 id = n;
                 not = b;
                 states.put(id, false);
+            }
+
+            public GateInfo(int n, boolean b, boolean update) {
+                id = n;
+                not = b;
+                if (update)
+                    states.put(id, false);
+            }
+
+            @Override
+            public TypeInfo copy() {
+                return new GateInfo(id, not, false);
             }
 
             @Override
@@ -4042,7 +4473,8 @@ public class Sokobanlike extends Prog {
 
             @Override
             public void reloadData() {
-                states.put(id, false);
+                if (!states.containsKey(id))
+                    states.put(id, false);
             }
         }
         public static class ToggleInfo extends TypeInfo {
@@ -4060,6 +4492,19 @@ public class Sokobanlike extends Prog {
                 id = n;
                 GateInfo.states.put(id, false);
                 helds.put(id, 0);
+            }
+
+            public ToggleInfo(int n, boolean update) {
+                id = n;
+                if (update) {
+                    GateInfo.states.put(id, false);
+                    helds.put(id, 0);
+                }
+            }
+
+            @Override
+            public TypeInfo copy() {
+                return new ToggleInfo(id, false);
             }
 
             @Override
@@ -4080,8 +4525,17 @@ public class Sokobanlike extends Prog {
 
             @Override
             public void reloadData() {
-                GateInfo.states.put(id, false);
-                helds.put(id, 0);
+                if (on) {
+                    if (helds.containsKey(id))
+                        helds.put(id, helds.get(id)+1);
+                    else
+                        helds.put(id, 1);
+                }
+                else {
+                    if (!helds.containsKey(id))
+                        helds.put(id, 0);
+                }
+                GateInfo.states.put(id, helds.get(id) > 0);
             }
         }
         public static class BombInfo extends TypeInfo {
@@ -4095,15 +4549,38 @@ public class Sokobanlike extends Prog {
                 countdown = c;
                 isLit = l;
             }
+            public BombInfo(int c, boolean l, boolean update) {
+                countdown = c;
+                isLit = l;
+            }
+
+            @Override
+            public TypeInfo copy() {
+                return new BombInfo(countdown, isLit, false);
+            }
 
             @Override
             public void nudge(int i) {
-                countdown++;
+                switch (i) {
+                    case 1:
+                        isLit = ! isLit;
+                        break;
+                    default:
+                        countdown++;
+                        break;
+                }
             }
 
             @Override
             public void antinudge(int i) {
-                countdown--;
+                switch (i) {
+                    case 1:
+                        isLit = ! isLit;
+                        break;
+                    default:
+                        countdown--;
+                        break;
+                }
             }
         }
         public static class FlagInfo extends TypeInfo {
@@ -4117,6 +4594,16 @@ public class Sokobanlike extends Prog {
                 if (isUp) numUp++;
                 //else numUp--;
             }
+            public FlagInfo(boolean u, boolean update) {
+                isUp = u;
+                if (isUp && update) numUp++;
+                //else numUp--;
+            }
+
+            @Override
+            public TypeInfo copy() {
+                return new FlagInfo(isUp, false);
+            }
 
             @Override
             public void nudge(int i) {
@@ -4125,11 +4612,20 @@ public class Sokobanlike extends Prog {
                 isUp = !isUp;
             }
             @Override
-            public void antinudge(int i) { nudge(); }
+            public void antinudge(int i) { nudge(i); }
+
+            @Override
+            public void reloadData() { numUp = 0; }
         }
         public static class PasteInfo extends TypeInfo {
             public boolean onCool = false;
             public PasteInfo() { onCool = false; }
+            public PasteInfo(boolean update) { onCool = false; }
+
+            @Override
+            public TypeInfo copy() {
+                return new PasteInfo(false);
+            }
         }
         public static class WatcherInfo extends ToggleInfo {
             public Coord dir;
@@ -4137,6 +4633,12 @@ public class Sokobanlike extends Prog {
 
             WatcherInfo() { super(); dir = new Coord(); GateInfo.states.put(0, false); ToggleInfo.helds.put(id, 0); }
             WatcherInfo(int i, Coord d) { super(i); dir = d; }
+            WatcherInfo(int i, Coord d, boolean update) { super(i, false); dir = d; }
+
+            @Override
+            public TypeInfo copy() {
+                return new WatcherInfo(id, dir, false);
+            }
 
             @Override
             public void nudge(int i) {
@@ -4182,6 +4684,45 @@ public class Sokobanlike extends Prog {
                 }
             }
         }
+        public static class LevelInfo extends TypeInfo {
+            public static TextField field;
+            public static LevelInfo curListener;
+            public String levelName;
+            public boolean renderTitle = false;
+            public LevelInfo() { levelName = ""; }
+            public LevelInfo(String l) { levelName = l; }
+            public LevelInfo(String l, boolean update) { levelName = l; }
+
+            @Override
+            public TypeInfo copy() {
+                return new LevelInfo(levelName, false);
+            }
+
+            @Override
+            public void nudge(int n) {
+                if (curListener != this) {
+                    curListener = this;
+                    field.notify = this::accept;
+                    field.prev = this::get;
+                    field.start();
+                }
+                else {
+                    curListener = null;
+                    field.field = "";
+                    field.destroy();
+                    field.notify = null;
+                    field.prev = null;
+                }
+            }
+
+            @Override
+            public void antinudge(int i) {
+                levelName = "";
+            }
+
+            public void accept(String s) { levelName = s; }
+            public String get() { return levelName; }
+        }
 
         public void nudge(int i) {
             System.out.println("nudged");
@@ -4201,6 +4742,10 @@ public class Sokobanlike extends Prog {
 
         public void reloadData() {}
 
+        public TypeInfo copy() {
+            return new TypeInfo();
+        }
+
         public static TypeInfo infoOfType(TileType tt) {
             if (tt == TileType.belt) return new BeltInfo();
             if (tt == TileType.player) return new PlayerInfo();
@@ -4210,6 +4755,7 @@ public class Sokobanlike extends Prog {
             if (tt == TileType.flag) return new FlagInfo();
             if (tt == TileType.paster) return new PasteInfo();
             if (tt == TileType.watcher) return new WatcherInfo();
+            if (tt == TileType.level) return new LevelInfo();
             return new TypeInfo();
         }
 
@@ -4229,7 +4775,7 @@ public class Sokobanlike extends Prog {
                     }
                     return new BeltInfo(dir);
                 }
-                if (tt == TileType.player) {
+                else if (tt == TileType.player) {
                     Coord dir = new Coord(-1, 0);
                     boolean awake = true;
                     boolean crippled = false;
@@ -4251,7 +4797,7 @@ public class Sokobanlike extends Prog {
                     }
                     return new PlayerInfo(dir, awake, crippled);
                 }
-                if (tt == TileType.gate || tt == TileType.toggleSpikes) {
+                else if (tt == TileType.gate || tt == TileType.toggleSpikes) {
                     int id = 0;
                     boolean not = false;
                     while (s.contains("|")) {
@@ -4266,7 +4812,7 @@ public class Sokobanlike extends Prog {
                     }
                     return new GateInfo(id, not);
                 }
-                if (tt == TileType.button) {
+                else if (tt == TileType.button) {
                     int id = 0;
                     while (s.contains("|")) {
                         if (s.charAt(0) == 'i') {
@@ -4278,7 +4824,7 @@ public class Sokobanlike extends Prog {
                     }
                     return new ToggleInfo(id);
                 }
-                if (tt == TileType.bomb) {
+                else if (tt == TileType.bomb) {
                     int c = 0;
                     boolean lit = false;
                     while (s.contains("|")) {
@@ -4293,7 +4839,7 @@ public class Sokobanlike extends Prog {
                     }
                     return new BombInfo(c, lit);
                 }
-                if (tt == TileType.flag) {
+                else if (tt == TileType.flag) {
                     boolean up = false;
                     while (s.contains("|")) {
                         if (s.charAt(0) == 'b') {
@@ -4305,10 +4851,10 @@ public class Sokobanlike extends Prog {
                     }
                     return new FlagInfo(up);
                 }
-                if (tt == TileType.paster) {
+                else if (tt == TileType.paster) {
                     return new PasteInfo();
                 }
-                if (tt == TileType.watcher) {
+                else if (tt == TileType.watcher) {
                     int id = 0;
                     Coord dir = new Coord(0, 0);
                     while (s.contains("|")) {
@@ -4322,6 +4868,18 @@ public class Sokobanlike extends Prog {
                         s = s.substring(s.indexOf("|")+1);
                     }
                     return new WatcherInfo(id, dir);
+                }
+                else if (tt == TileType.level) {
+                    String level = "";
+                    while (s.contains("|")) {
+                        if (s.charAt(0) == 's') {
+                            level = s.substring(1, s.indexOf("|"));
+                        } else {
+                            throw new InfoFormattingException(tt);
+                        }
+                        s = s.substring(s.indexOf("|")+1);
+                    }
+                    return new LevelInfo(level);
                 }
                 else return new TypeInfo();
             } catch (Exception e) {
@@ -4351,6 +4909,9 @@ public class Sokobanlike extends Prog {
             else if (ti instanceof FlagInfo fi) {
                 ret = "|b"+(fi.isUp?1:0);
             }
+            else if (ti instanceof LevelInfo li) {
+                ret = "|s"+li.levelName;
+            }
             return ret;
         }
 
@@ -4368,6 +4929,27 @@ public class Sokobanlike extends Prog {
             }
         }
     }
+    public class TypeInfoContext {
+        //` store the static TypeInfo vars to backtrack on undo
+        int playersAwake;
+        TreeMap<Integer, Boolean> gateStates;
+        TreeMap<Integer, Integer> toggleHelds;
+        int flagNumUp;
+
+        public TypeInfoContext() {
+            playersAwake = TypeInfo.PlayerInfo.awake;
+            gateStates = new TreeMap<Integer, Boolean>(TypeInfo.GateInfo.states);
+            toggleHelds = new TreeMap<Integer, Integer>(TypeInfo.ToggleInfo.helds);
+            flagNumUp = TypeInfo.FlagInfo.numUp;
+        }
+
+        public void set() {
+            TypeInfo.PlayerInfo.awake = playersAwake;
+            TypeInfo.GateInfo.states = gateStates;
+            TypeInfo.ToggleInfo.helds = toggleHelds;
+            TypeInfo.FlagInfo.numUp = flagNumUp;
+        }
+    }
 
     public static void renderNumbers(Coord pos, Coord bounds, int num, Graphics g) {
         boolean neg = num < 0;
@@ -4378,7 +4960,8 @@ public class Sokobanlike extends Prog {
                 g.drawImage(Sprites.negative.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null);
                 break;
             }
-            switch (num%10) {
+            g.drawImage(Sprites.Sheets.text.sheet[16+num%10], (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null);
+            /*switch (num%10) {
                 case 0: g.drawImage(Sprites.zero.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
                 case 1: g.drawImage(Sprites.one.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
                 case 2: g.drawImage(Sprites.two.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
@@ -4389,8 +4972,17 @@ public class Sokobanlike extends Prog {
                 case 7: g.drawImage(Sprites.seven.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
                 case 8: g.drawImage(Sprites.eight.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
                 case 9: g.drawImage(Sprites.nine.i, (int) (pos.x + bounds.x*x/digits), pos.y(), (int) (bounds.x/digits), bounds.y(), null); break;
-            }
+            }*/
             num /= 10;
+        }
+    }
+
+    public static void renderString(Coord pos, Coord bounds, String str, Graphics g) {
+        int i = 0;
+        double l = bounds.x / str.length();
+        for (char c: str.toCharArray()) {
+            g.drawImage(Sprites.Sheets.text.sheet[(int) c - 32], (int) (pos.x + l * i), pos.y(), (int) (l), bounds.y(), null);
+            i++;
         }
     }
 }
